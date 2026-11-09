@@ -1,21 +1,45 @@
 [Unit]
 Description=Prometheus WireGuard Exporter
+Documentation=https://github.com/pessom/wireguard-exporter
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-DynamicUser=yes
-AmbientCapabilities=CAP_NET_ADMIN
-CapabilityBoundingSet=CAP_NET_ADMIN
-NoNewPrivileges=yes
-ProtectSystem=strict
-ProtectHome=yes
-PrivateTmp=yes
 EnvironmentFile=-/etc/default/wireguard_exporter
 ExecStart=/usr/local/bin/wireguard_exporter $WG_EXPORTER_OPTS
 Restart=always
 RestartSec=5
+
+# Unprivileged dynamic user with CAP_NET_ADMIN only (read WireGuard via netlink).
+DynamicUser=yes
+AmbientCapabilities=CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_ADMIN
+NoNewPrivileges=yes
+
+# Sandboxing. Do not add PrivateUsers= or PrivateNetwork=: the exporter needs
+# CAP_NET_ADMIN in the host network namespace.
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_NETLINK AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+UMask=0077
 
 [Install]
 WantedBy=multi-user.target
