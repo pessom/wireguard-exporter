@@ -6,6 +6,13 @@ rule_files:
 
 evaluation_interval: 1m
 
+# Rule groups are evaluated independently; fix the order so alerts see the
+# recording rules of the same evaluation (deterministic $value).
+group_eval_order:
+  - wireguard-peer-names
+  - wireguard
+  - wireguard-alerts
+
 tests:
   - interval: 1m
     input_series:

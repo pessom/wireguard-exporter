@@ -7,6 +7,7 @@ it monitors and needs **`CAP_NET_ADMIN`** there. Nothing else: no root, no
 | Method | Use when |
 |---|---|
 | [Binary + systemd](#binary--systemd) | WireGuard runs on a regular Linux host |
+| [Ansible](ansible.md) | Same, automated (example role, works with `ansible-pull`) |
 | [Docker / nerdctl / Podman](#containers) | You run everything in containers |
 | [Kubernetes: Helm](#kubernetes-helm) | Nodes have WireGuard interfaces (CNI, site-to-site, gateways) |
 | [Kubernetes: kustomize](#kubernetes-kustomize) | Same, plain manifests |
@@ -29,15 +30,24 @@ curl -s localhost:9586/metrics | head
 ```
 
 The unit runs the exporter as a dynamic unprivileged user with only
-`CAP_NET_ADMIN` (`AmbientCapabilities`), read-only filesystem and
-`NoNewPrivileges`. Flags go to `/etc/default/wireguard_exporter`:
+`CAP_NET_ADMIN` and a strict sandbox (read-only filesystem, no new
+privileges, restricted address families and system calls, protected kernel
+interfaces; `systemd-analyze security wireguard_exporter` rates it about
+1.5 "OK"). Do not add `PrivateUsers=` or `PrivateNetwork=`: the exporter
+needs `CAP_NET_ADMIN` in the host network namespace. Flags go to
+`/etc/default/wireguard_exporter`:
 
 ```sh
 WG_EXPORTER_OPTS="--web.listen-address 10.0.0.1:9586 --wireguard.peer-names-file /etc/wireguard_exporter/peers.yml"
 ```
 
-The [peer names file](configuration.md#peer-names-file) only needs to be
-readable by the exporter's user (`chmod 0644`); it contains no secrets.
+The [peer names file](configuration.md#peer-names-file) must be readable by
+the dynamic user: directory `0755`, file `0644` (it contains no secrets):
+
+```sh
+sudo install -d -m 0755 /etc/wireguard_exporter
+sudo install -m 0644 peers.yml /etc/wireguard_exporter/peers.yml
+```
 
 Without systemd, grant the capability to the binary instead and run it as any
 user: `sudo setcap cap_net_admin+ep /usr/local/bin/wireguard_exporter`.

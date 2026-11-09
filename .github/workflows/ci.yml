@@ -49,12 +49,13 @@ jobs:
 
   e2e:
     # Real kernel WireGuard: tunnel + handshake, exporter as a binary with
-    # CAP_NET_ADMIN and as a container image with minimal privileges.
+    # CAP_NET_ADMIN, as a container image with minimal privileges and as the
+    # hardened systemd unit from contrib/.
     needs: [check, build]
     strategy:
       fail-fast: false
       matrix:
-        mode: [binary, image]
+        mode: [binary, image, systemd]
     name: e2e (${{ matrix.mode }})
     runs-on: ubuntu-26.04
     steps:
@@ -74,6 +75,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y wireguard-tools
       - if: matrix.mode == 'binary'
         run: scripts/e2e.sh dist/amd64/wireguard_exporter
+      - if: matrix.mode == 'systemd'
+        run: scripts/e2e.sh --systemd dist/amd64/wireguard_exporter
       - if: matrix.mode == 'image'
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - if: matrix.mode == 'image'
