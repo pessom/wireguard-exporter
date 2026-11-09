@@ -4,8 +4,8 @@ description: Prometheus exporter for WireGuard (kernel netlink), deployed as a D
 type: application
 # version and appVersion are set to the release version on publish
 # (helm package --version/--app-version), keep them in sync with Cargo.toml.
-version: 0.2.0
-appVersion: "0.2.0"
+version: 0.3.0
+appVersion: "0.3.0"
 home: https://github.com/pessom/wireguard-exporter
 sources:
   - https://github.com/pessom/wireguard-exporter

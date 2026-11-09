@@ -2,7 +2,7 @@
 # Monitors the host's WireGuard interfaces with the minimal privileges.
 services:
   wireguard-exporter:
-    image: ghcr.io/pessom/wireguard-exporter:0.2.0
+    image: ghcr.io/pessom/wireguard-exporter:0.3.0
     restart: unless-stopped
     network_mode: host
     cap_drop: [ALL]
