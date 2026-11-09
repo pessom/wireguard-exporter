@@ -1,0 +1,10 @@
+wireguard-exporter runs as a DaemonSet in namespace {{ .Release.Namespace }}.
+
+{{- if .Values.hostNetwork }}
+It uses the node network (hostNetwork) and CAP_NET_ADMIN: the namespace must
+allow the "privileged" Pod Security Standard, e.g.
+
+  kubectl label namespace {{ .Release.Namespace }} pod-security.kubernetes.io/enforce=privileged
+{{- end }}
+
+Metrics: http://<node-ip>:{{ .Values.port }}{{ .Values.telemetryPath }}

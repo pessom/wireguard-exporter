@@ -1,0 +1,75 @@
+image:
+  repository: ghcr.io/pessom/wireguard-exporter
+  # Defaults to the chart appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Share the node network namespace to monitor the node's WireGuard
+# interfaces. Requires a namespace with the "privileged" Pod Security Standard.
+hostNetwork: true
+
+# Container port; with hostNetwork it is opened on every node.
+port: 9586
+# Defaults to 0.0.0.0:<port>.
+listenAddress: ""
+telemetryPath: /metrics
+# Fixed list of interfaces; empty means autodiscovery.
+interfaces: []
+logLevel: info
+extraArgs: []
+extraEnv: []
+
+podAnnotations: {}
+podLabels: {}
+
+# UID 0 with only NET_ADMIN: non-root would need file capabilities, which
+# allowPrivilegeEscalation: false disables.
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  runAsUser: 0
+  runAsNonRoot: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+    add: [NET_ADMIN]
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 16Mi
+  limits:
+    memory: 64Mi
+
+nodeSelector: {}
+# Run on every node, including control plane and tainted ones.
+tolerations:
+  - operator: Exists
+affinity: {}
+priorityClassName: ""
+
+updateStrategy:
+  type: RollingUpdate
+
+service:
+  # Headless: one endpoint per node.
+  enabled: true
+  annotations:
+    prometheus.io/scrape: "true"
+
+serviceMonitor:
+  # Requires the Prometheus Operator CRDs.
+  enabled: false
+  labels: {}
+  interval: 30s
+  scrapeTimeout: ""
+  # Use the node name as the `instance` label.
+  instanceFromNodeName: true
+  relabelings: []
+  metricRelabelings: []

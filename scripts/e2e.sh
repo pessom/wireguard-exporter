@@ -2,13 +2,25 @@
 # End-to-end test against real kernel WireGuard (Linux, needs sudo).
 #
 # Creates a tunnel between wg-a (root netns) and wg-b (netns "wge2e"),
-# triggers a handshake with ping, runs the exporter as an unprivileged user
-# with CAP_NET_ADMIN and checks the exposed metrics.
+# triggers a handshake with ping, runs the exporter and checks the exposed
+# metrics. The exporter runs either as a binary (unprivileged user with
+# CAP_NET_ADMIN) or as a container image with the documented minimal
+# privileges (host network, only NET_ADMIN, no-new-privileges, read-only).
 #
 # Usage: scripts/e2e.sh <path-to-wireguard_exporter-binary>
+#        scripts/e2e.sh --image <image>   (runtime: $E2E_RUNTIME, default docker)
 set -euo pipefail
 
-BIN="$(realpath "${1:?usage: $0 <binary>}")"
+USAGE="usage: $0 <binary> | --image <image>"
+BIN=""
+IMAGE=""
+if [[ "${1:-}" == "--image" ]]; then
+    IMAGE="${2:?$USAGE}"
+else
+    BIN="$(realpath "${1:?$USAGE}")"
+fi
+RUNTIME="${E2E_RUNTIME:-docker}"
+CONTAINER=wge2e-exporter
 PORT=19586
 NS=wge2e
 WORK="$(mktemp -d)"
@@ -21,6 +33,7 @@ EXPORTER_PID=""
 
 cleanup() {
     [[ -n "$EXPORTER_PID" ]] && kill "$EXPORTER_PID" 2>/dev/null || true
+    [[ -n "$IMAGE" ]] && "$RUNTIME" rm -f "$CONTAINER" >/dev/null 2>&1 || true
     sudo ip link del wg-a 2>/dev/null || true
     sudo ip netns del "$NS" 2>/dev/null || true
     rm -rf "$WORK"
@@ -32,6 +45,10 @@ fail() {
     echo "FAIL: $*" >&2
     echo "---- metrics ----" >&2
     cat "$WORK/metrics" >&2 2>/dev/null || true
+    if [[ -n "$IMAGE" ]]; then
+        echo "---- container logs ----" >&2
+        "$RUNTIME" logs "$CONTAINER" >&2 2>&1 || true
+    fi
     exit 1
 }
 
@@ -59,11 +76,21 @@ sudo ip netns exec "$NS" ip link set wg-b up
 
 sudo ip netns exec "$NS" ping -c 3 -W 2 10.99.0.1 >/dev/null || fail "tunnel ping failed"
 
-# Run as the current (unprivileged) user with only CAP_NET_ADMIN.
-cp "$BIN" "$WORK/wireguard_exporter"
-sudo setcap cap_net_admin+ep "$WORK/wireguard_exporter"
-"$WORK/wireguard_exporter" --web.listen-address "127.0.0.1:$PORT" &
-EXPORTER_PID=$!
+if [[ -n "$IMAGE" ]]; then
+    # Minimal privileges documented in README ("Containers").
+    "$RUNTIME" run -d --name "$CONTAINER" \
+        --network host \
+        --cap-drop ALL --cap-add NET_ADMIN \
+        --security-opt no-new-privileges \
+        --read-only \
+        "$IMAGE" --web.listen-address "127.0.0.1:$PORT" >/dev/null
+else
+    # Run as the current (unprivileged) user with only CAP_NET_ADMIN.
+    cp "$BIN" "$WORK/wireguard_exporter"
+    sudo setcap cap_net_admin+ep "$WORK/wireguard_exporter"
+    "$WORK/wireguard_exporter" --web.listen-address "127.0.0.1:$PORT" &
+    EXPORTER_PID=$!
+fi
 
 for _ in $(seq 1 50); do
     curl -fsS "http://127.0.0.1:$PORT/metrics" -o "$WORK/metrics" 2>/dev/null && break

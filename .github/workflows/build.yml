@@ -1,0 +1,50 @@
+name: Build
+
+# Static musl binaries for every supported architecture. Called by CI and
+# Release; each binary is uploaded as artifact `wireguard_exporter-linux-<arch>`.
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to check out
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-26.04
+            target: x86_64-unknown-linux-musl
+          - arch: arm64
+            runner: ubuntu-26.04-arm
+            target: aarch64-unknown-linux-musl
+    name: build (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref }}
+      - name: Install Rust (rust-toolchain.toml)
+        run: rustup toolchain install && rustup target add ${{ matrix.target }}
+      - name: Install musl tools
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          key: ${{ matrix.target }}
+      - run: cargo build --release --locked --target ${{ matrix.target }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: wireguard_exporter-linux-${{ matrix.arch }}
+          path: target/${{ matrix.target }}/release/wireguard_exporter
+          if-no-files-found: error
+          retention-days: 7

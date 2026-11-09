@@ -1,0 +1,40 @@
+{{- if .Values.serviceMonitor.enabled }}
+{{- if not .Values.service.enabled }}
+{{- fail "serviceMonitor.enabled requires service.enabled" }}
+{{- end }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "wireguard-exporter.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wireguard-exporter.labels" . | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "wireguard-exporter.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: metrics
+      path: {{ .Values.telemetryPath }}
+      interval: {{ .Values.serviceMonitor.interval }}
+      {{- with .Values.serviceMonitor.scrapeTimeout }}
+      scrapeTimeout: {{ . }}
+      {{- end }}
+      {{- if or .Values.serviceMonitor.instanceFromNodeName .Values.serviceMonitor.relabelings }}
+      relabelings:
+        {{- if .Values.serviceMonitor.instanceFromNodeName }}
+        - sourceLabels: [__meta_kubernetes_pod_node_name]
+          targetLabel: instance
+        {{- end }}
+        {{- with .Values.serviceMonitor.relabelings }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.serviceMonitor.metricRelabelings }}
+      metricRelabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

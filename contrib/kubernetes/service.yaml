@@ -1,0 +1,17 @@
+# Headless: one endpoint per node, used by ServiceMonitor or
+# annotation-based Prometheus discovery.
+apiVersion: v1
+kind: Service
+metadata:
+  name: wireguard-exporter
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9586"
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: wireguard-exporter
+  ports:
+    - name: metrics
+      port: 9586
+      targetPort: metrics

@@ -42,17 +42,80 @@ jobs:
           ref: ${{ inputs.ref }}
       - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
 
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      ref: ${{ inputs.ref }}
+
   e2e:
-    # Real kernel WireGuard: tunnel + handshake + exporter with CAP_NET_ADMIN.
+    # Real kernel WireGuard: tunnel + handshake, exporter as a binary with
+    # CAP_NET_ADMIN and as a container image with minimal privileges.
+    needs: [check, build]
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [binary, image]
+    name: e2e (${{ matrix.mode }})
     runs-on: ubuntu-26.04
-    needs: check
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.ref }}
-      - run: rustup toolchain install
-      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: wireguard_exporter-linux-*
+          path: artifacts
+      - name: Arrange binaries in dist/<arch>/
+        run: |
+          for a in amd64 arm64; do
+            install -D -m 0755 "artifacts/wireguard_exporter-linux-$a/wireguard_exporter" "dist/$a/wireguard_exporter"
+          done
       - name: Install wireguard-tools
         run: sudo apt-get update && sudo apt-get install -y wireguard-tools
-      - run: cargo build --release --locked
-      - run: scripts/e2e.sh target/release/wireguard_exporter
+      - if: matrix.mode == 'binary'
+        run: scripts/e2e.sh dist/amd64/wireguard_exporter
+      - if: matrix.mode == 'image'
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - if: matrix.mode == 'image'
+        name: Build multi-arch image (no push)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+      - if: matrix.mode == 'image'
+        name: Build amd64 image for e2e
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: wireguard-exporter:e2e
+      - if: matrix.mode == 'image'
+        run: scripts/e2e.sh --image wireguard-exporter:e2e
+
+  kubernetes:
+    # Render the Helm chart and kustomize manifests and validate them.
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+      - name: Install kubeconform
+        env:
+          VERSION: v0.8.0
+        run: |
+          base="https://github.com/yannh/kubeconform/releases/download/$VERSION"
+          curl -fsSLO "$base/kubeconform-linux-amd64.tar.gz"
+          curl -fsSL "$base/CHECKSUMS" | grep ' kubeconform-linux-amd64.tar.gz$' | sha256sum -c -
+          sudo tar -xzf kubeconform-linux-amd64.tar.gz -C /usr/local/bin kubeconform
+      - run: helm lint --strict charts/wireguard-exporter
+      - run: helm lint --strict charts/wireguard-exporter --set serviceMonitor.enabled=true
+      - name: Validate rendered manifests
+        run: |
+          kc() { kubeconform -strict -summary -ignore-missing-schemas "$@"; }
+          helm template wg charts/wireguard-exporter | kc
+          helm template wg charts/wireguard-exporter --set serviceMonitor.enabled=true | kc
+          kubectl kustomize contrib/kubernetes | kc
+          kc contrib/kubernetes/servicemonitor.yaml contrib/kubernetes/examples/sidecar.yaml

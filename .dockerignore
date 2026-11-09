@@ -1,0 +1,3 @@
+*
+!dist/amd64/wireguard_exporter
+!dist/arm64/wireguard_exporter

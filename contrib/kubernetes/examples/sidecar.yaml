@@ -1,0 +1,40 @@
+# Sidecar: the exporter shares the pod network namespace with a WireGuard
+# container and sees only that pod's tunnels. No hostNetwork is needed;
+# NET_ADMIN applies to the pod's own network namespace. Works with rootless
+# runtimes and user namespaces as well.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: wireguard-gateway
+  labels:
+    app.kubernetes.io/name: wireguard-gateway
+spec:
+  automountServiceAccountToken: false
+  securityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: wireguard
+      image: example.org/your-wireguard-image:latest # brings up wg0
+      securityContext:
+        capabilities:
+          add: [NET_ADMIN]
+    - name: wireguard-exporter
+      image: ghcr.io/pessom/wireguard-exporter:0.2.0
+      ports:
+        - name: metrics
+          containerPort: 9586
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          memory: 64Mi
+      securityContext:
+        runAsUser: 0
+        runAsNonRoot: false
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+          add: [NET_ADMIN]
