@@ -19,7 +19,7 @@ body:
     attributes:
       label: Exporter version
       description: Output of `wireguard_exporter --version` or the image tag.
-      placeholder: "0.3.0"
+      placeholder: "0.3.1"
     validations:
       required: true
   - type: dropdown

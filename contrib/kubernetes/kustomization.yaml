@@ -13,4 +13,4 @@ resources:
   - service.yaml
 images:
   - name: ghcr.io/pessom/wireguard-exporter
-    newTag: "0.3.0" # keep in sync with Cargo.toml (checked by the Release workflow)
+    newTag: "0.3.1" # keep in sync with Cargo.toml (checked by the Release workflow)
