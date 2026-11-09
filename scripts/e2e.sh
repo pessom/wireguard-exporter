@@ -12,9 +12,10 @@ BIN="$(realpath "${1:?usage: $0 <binary>}")"
 PORT=19586
 NS=wge2e
 WORK="$(mktemp -d)"
-# Root-owned: the wg AppArmor profile (Ubuntu 26.04+) denies root
-# dac_override/dac_read_search, so wg cannot read keys in $WORK.
-KEYDIR="$(sudo mktemp -d)"
+# The wg AppArmor profile (Ubuntu 26.04+) only lets wg read files under
+# /etc/wireguard, so the private keys must live there.
+sudo mkdir -p /etc/wireguard
+KEYDIR="$(sudo mktemp -d -p /etc/wireguard e2e.XXXXXX)"
 umask 077
 EXPORTER_PID=""
 
