@@ -4,8 +4,12 @@ Prometheus exporter for Linux kernel WireGuard interfaces. Reads state via
 netlink (no `wg` binary needed) and ships as a single static binary and a
 `FROM scratch` container image for `amd64` and `arm64`.
 
-- Per-peer traffic, last handshake, endpoint and allowed IPs; per-interface
-  status and peer count — see [metrics](docs/metrics.md).
+- Per-peer traffic, last handshake, keepalive, endpoint, allowed IPs and
+  PSK usage; per-interface status and peer count — see
+  [metrics](docs/metrics.md).
+- **Friendly peer names** from a simple YAML file, reloaded on change — see
+  [peer names](docs/prometheus.md#peer-names).
+- Privacy switches to hide peer endpoints and allowed IPs.
 - Needs only `CAP_NET_ADMIN`: systemd unit, container and Kubernetes
   manifests run it with that single capability.
 - Interfaces are discovered automatically on every scrape.

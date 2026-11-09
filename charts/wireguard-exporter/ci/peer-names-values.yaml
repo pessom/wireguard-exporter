@@ -1,0 +1,9 @@
+peerNames:
+  "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=": alice-laptop
+  "HIgo9xNzJMWLKASShiTqIybxZ0U3wGLiUeJ1PKf8ykw=":
+    name: office-gateway
+    site: fra
+collector:
+  peerEndpoint: false
+serviceMonitor:
+  enabled: true

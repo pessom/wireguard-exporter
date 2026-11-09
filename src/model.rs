@@ -21,6 +21,10 @@ pub struct PeerStats {
     pub last_handshake_seconds: f64,
     pub rx_bytes: u64,
     pub tx_bytes: u64,
+    /// Persistent keepalive interval in seconds; 0 if disabled.
+    pub persistent_keepalive_seconds: u16,
+    /// Whether a (non-zero) preshared key is configured.
+    pub has_preshared_key: bool,
 }
 
 /// Converts the kernel's "last handshake" value into a unix timestamp.

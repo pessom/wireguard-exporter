@@ -50,6 +50,15 @@ spec:
             {{- with .Values.interfaces }}
             - --wireguard.interfaces={{ join "," . }}
             {{- end }}
+            {{- if include "wireguard-exporter.peerNamesConfigMap" . }}
+            - --wireguard.peer-names-file=/etc/wireguard_exporter/{{ .Values.peerNamesConfigMapKey }}
+            {{- end }}
+            {{- if not .Values.collector.peerEndpoint }}
+            - --no-collector.peer-endpoint
+            {{- end }}
+            {{- if not .Values.collector.peerAllowedIps }}
+            - --no-collector.peer-allowed-ips
+            {{- end }}
             {{- with .Values.extraArgs }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -79,6 +88,18 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- if include "wireguard-exporter.peerNamesConfigMap" . }}
+          volumeMounts:
+            - name: peer-names
+              mountPath: /etc/wireguard_exporter
+              readOnly: true
+          {{- end }}
+      {{- if include "wireguard-exporter.peerNamesConfigMap" . }}
+      volumes:
+        - name: peer-names
+          configMap:
+            name: {{ include "wireguard-exporter.peerNamesConfigMap" . }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

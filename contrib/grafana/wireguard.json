@@ -8,13 +8,13 @@
   "timezone": "browser",
   "editable": true,
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "1m",
   "time": {
     "from": "now-6h",
     "to": "now"
   },
-  "description": "pessom/wireguard-exporter. Peer names come from the optional wireguard_peer_name metric (docs/prometheus.md).",
+  "description": "pessom/wireguard-exporter. Peer names come from wireguard_peer_name (exporter --wireguard.peer-names-file or Prometheus rules, docs/prometheus.md).",
   "links": [
     {
       "title": "wireguard-exporter",
@@ -476,6 +476,17 @@
           "instant": true,
           "range": false,
           "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "E",
+          "expr": "(wireguard_peer_persistent_keepalive_seconds{job=~\"$job\",instance=~\"$instance\",interface=~\"$interface\"}) * on (public_key) group_left (name) max by (public_key, name) (wireguard_peer_name)\nor on (instance, interface, public_key)\n(wireguard_peer_persistent_keepalive_seconds{job=~\"$job\",instance=~\"$instance\",interface=~\"$interface\"})",
+          "instant": true,
+          "range": false,
+          "format": "table"
         }
       ],
       "transformations": [
@@ -499,14 +510,18 @@
               "interface": 3,
               "endpoint": 4,
               "allowed_ips": 5,
-              "Value #B": 6,
-              "Value #C": 7,
-              "Value #D": 8
+              "Value #B": 7,
+              "Value #C": 9,
+              "Value #D": 10,
+              "preshared_key": 6,
+              "Value #E": 8
             },
             "renameByName": {
               "Value #B": "Last handshake",
               "Value #C": "Received",
-              "Value #D": "Transmitted"
+              "Value #D": "Transmitted",
+              "Value #E": "Keepalive",
+              "preshared_key": "PSK"
             }
           }
         }
@@ -560,6 +575,31 @@
               {
                 "id": "unit",
                 "value": "Bps"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Keepalive"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "off"
+                      }
+                    }
+                  }
+                ]
               }
             ]
           }

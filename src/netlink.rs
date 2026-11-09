@@ -44,6 +44,12 @@ impl Source for NetlinkSource {
                 last_handshake_seconds: handshake_to_unix(p.last_handshake),
                 rx_bytes: p.rx_bytes,
                 tx_bytes: p.tx_bytes,
+                persistent_keepalive_seconds: p.persistent_keepalive_interval.unwrap_or(0),
+                // The kernel reports an all-zero key when no PSK is set.
+                has_preshared_key: p
+                    .preshared_key
+                    .as_ref()
+                    .is_some_and(|k| k.as_slice().iter().any(|&b| b != 0)),
             })
             .collect();
         // HashMap order is random; keep output stable.

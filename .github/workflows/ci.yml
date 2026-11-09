@@ -112,11 +112,13 @@ jobs:
           sudo tar -xzf kubeconform-linux-amd64.tar.gz -C /usr/local/bin kubeconform
       - run: helm lint --strict charts/wireguard-exporter
       - run: helm lint --strict charts/wireguard-exporter --set serviceMonitor.enabled=true
+      - run: helm lint --strict charts/wireguard-exporter -f charts/wireguard-exporter/ci/peer-names-values.yaml
       - name: Validate rendered manifests
         run: |
           kc() { kubeconform -strict -summary -ignore-missing-schemas "$@"; }
           helm template wg charts/wireguard-exporter | kc
           helm template wg charts/wireguard-exporter --set serviceMonitor.enabled=true | kc
+          helm template wg charts/wireguard-exporter -f charts/wireguard-exporter/ci/peer-names-values.yaml | kc
           kubectl kustomize contrib/kubernetes | kc
           kc contrib/kubernetes/servicemonitor.yaml contrib/kubernetes/examples/sidecar.yaml
 

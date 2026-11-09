@@ -43,10 +43,27 @@ With the host network, port 9586 must be free on the node. Change it with
 Expected for idle peers without `PersistentKeepalive`: WireGuard handshakes
 only when there is traffic. See [Metrics → Semantics](metrics.md#semantics).
 
+## Peer names are not shown
+
+- `wireguard_exporter_peer_names_load_success 0`: the file is missing or
+  invalid at runtime; the exporter logs the reason
+  (`peer names reload failed`) and keeps the previous names.
+- The exporter does not start and logs `parsing <file>`: the file is invalid
+  at startup — fix the reported entry (key must be a 44-character public
+  key, `name` must not be empty, label names must be valid and not reserved).
+- No `wireguard_peer_name` for a peer: its key in the file does not match
+  `wg show` exactly, or the peer is not configured on any exported
+  interface.
+- Docker single-file bind mount: an editor that replaces the file is not
+  seen in the container; mount the directory instead.
+- Kubernetes: ConfigMap changes reach the pod after the kubelet sync
+  (up to about a minute).
+
 ## `many-to-many matching not allowed` in peer-name queries
 
-The same public key has two different names in `wireguard_peer_name`. See
-[Peer names](prometheus.md#peer-names).
+The same public key has two different names in `wireguard_peer_name`, e.g.
+different names files on two hosts, or the exporter file and the Prometheus
+rules disagree. Use one name per key. See [Peer names](prometheus.md#peer-names).
 
 ## Debug logging
 
