@@ -1,0 +1,73 @@
+# promtool test rules contrib/prometheus/tests/wireguard.test.yml
+rule_files:
+  - ../peer-names.rules.yml
+  - ../wireguard.rules.yml
+  - ../wireguard.alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      # alice: named, 6000 bytes/min, handshake always 60 s ago.
+      - series: 'wireguard_peer_receive_bytes_total{job="wireguard",instance="gw:9586",interface="wg0",public_key="xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg="}'
+        values: "0+6000x20"
+      - series: 'wireguard_peer_last_handshake_timestamp_seconds{job="wireguard",instance="gw:9586",interface="wg0",public_key="xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg="}'
+        values: "-60+60x20"
+      # unnamed peer: no entry in peer-names.rules.yml, stale handshake.
+      - series: 'wireguard_peer_receive_bytes_total{job="wireguard",instance="gw:9586",interface="wg0",public_key="UNNAMEDxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="}'
+        values: "0+60x20"
+      - series: 'wireguard_peer_last_handshake_timestamp_seconds{job="wireguard",instance="gw:9586",interface="wg0",public_key="UNNAMEDxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="}'
+        values: "1x20"
+      # never connected: must not appear in handshake age.
+      - series: 'wireguard_peer_last_handshake_timestamp_seconds{job="wireguard",instance="gw:9586",interface="wg0",public_key="HIgo9xNzJMWLKASShiTqIybxZ0U3wGLiUeJ1PKf8ykw="}'
+        values: "0x20"
+      - series: 'wireguard_scrape_success{job="wireguard",instance="gw:9586",interface="wg1"}'
+        values: "0x20"
+      - series: 'up{job="wireguard",instance="gw:9586"}'
+        values: "1x20"
+
+    promql_expr_test:
+      - expr: wireguard_peer:receive_bytes:rate5m
+        eval_time: 10m
+        exp_samples:
+          - labels: 'wireguard_peer:receive_bytes:rate5m{job="wireguard",instance="gw:9586",interface="wg0",public_key="xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=",name="alice-laptop"}'
+            value: 100
+          - labels: 'wireguard_peer:receive_bytes:rate5m{job="wireguard",instance="gw:9586",interface="wg0",public_key="UNNAMEDxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="}'
+            value: 1
+      - expr: wireguard_peer:handshake_age:seconds
+        eval_time: 10m
+        exp_samples:
+          - labels: 'wireguard_peer:handshake_age:seconds{job="wireguard",instance="gw:9586",interface="wg0",public_key="xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=",name="alice-laptop"}'
+            value: 60
+          - labels: 'wireguard_peer:handshake_age:seconds{job="wireguard",instance="gw:9586",interface="wg0",public_key="UNNAMEDxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="}'
+            value: 599
+
+    alert_rule_test:
+      # Stale since t=6m (age > 300), firing after `for: 5m`.
+      - alertname: WireGuardPeerHandshakeStale
+        eval_time: 15m
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: wireguard
+              instance: gw:9586
+              interface: wg0
+              public_key: UNNAMEDxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=
+            exp_annotations:
+              summary: "No handshake with peer UNNAMEDxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx= for over 5 minutes"
+              description: "Interface wg0 on gw:9586: last handshake 14m 59s ago."
+      - alertname: WireGuardInterfaceReadFailed
+        eval_time: 15m
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: wireguard
+              instance: gw:9586
+              interface: wg1
+            exp_annotations:
+              summary: "Cannot read WireGuard interface wg1 on gw:9586"
+              description: "Check CAP_NET_ADMIN and the exporter logs (docs/troubleshooting.md)."
+      - alertname: WireGuardExporterDown
+        eval_time: 15m
+        exp_alerts: []

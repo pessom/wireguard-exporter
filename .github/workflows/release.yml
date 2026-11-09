@@ -29,8 +29,10 @@ jobs:
             || { echo "contrib/kubernetes/kustomization.yaml newTag != $ver"; exit 1; }
           grep -q "^appVersion: \"$ver\"" charts/wireguard-exporter/Chart.yaml \
             || { echo "charts/wireguard-exporter/Chart.yaml appVersion != $ver"; exit 1; }
-          if grep -rn 'ghcr.io/pessom/wireguard-exporter:' contrib | grep -v ":$ver\b"; then
-            echo "image tags in contrib/ != $ver"; exit 1
+          # Versions in examples: image tags, `--version X`, `VERSION=X`.
+          if grep -rnE 'wireguard-exporter:[0-9]|--version [0-9]|VERSION=[0-9]' contrib docs README.md \
+              | grep -vE "(:|--version |VERSION=)$ver\b"; then
+            echo "versions in contrib/, docs/ or README.md != $ver"; exit 1
           fi
           echo "version=$ver" >> "$GITHUB_OUTPUT"
       - run: rustup toolchain install

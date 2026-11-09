@@ -77,7 +77,7 @@ sudo ip netns exec "$NS" ip link set wg-b up
 sudo ip netns exec "$NS" ping -c 3 -W 2 10.99.0.1 >/dev/null || fail "tunnel ping failed"
 
 if [[ -n "$IMAGE" ]]; then
-    # Minimal privileges documented in README ("Containers").
+    # Minimal privileges documented in docs/installation.md ("Containers").
     "$RUNTIME" run -d --name "$CONTAINER" \
         --network host \
         --cap-drop ALL --cap-add NET_ADMIN \

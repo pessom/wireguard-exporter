@@ -119,3 +119,24 @@ jobs:
           helm template wg charts/wireguard-exporter --set serviceMonitor.enabled=true | kc
           kubectl kustomize contrib/kubernetes | kc
           kc contrib/kubernetes/servicemonitor.yaml contrib/kubernetes/examples/sidecar.yaml
+
+  prometheus:
+    # Validate and unit-test the rules in contrib/prometheus, check dashboards.
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref }}
+      - name: Install promtool
+        env:
+          VERSION: 3.16.0
+        run: |
+          f="prometheus-$VERSION.linux-amd64.tar.gz"
+          base="https://github.com/prometheus/prometheus/releases/download/v$VERSION"
+          curl -fsSLO "$base/$f"
+          curl -fsSL "$base/sha256sums.txt" | grep " $f\$" | sha256sum -c -
+          sudo tar -xzf "$f" -C /usr/local/bin --strip-components=1 "prometheus-$VERSION.linux-amd64/promtool"
+      - run: promtool check rules contrib/prometheus/*.rules.yml contrib/prometheus/*.alerts.yml
+      - run: promtool test rules contrib/prometheus/tests/*.test.yml
+      - name: Dashboards are valid JSON
+        run: for f in contrib/grafana/*.json; do jq empty "$f"; done

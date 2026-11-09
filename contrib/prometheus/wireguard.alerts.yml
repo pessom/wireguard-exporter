@@ -1,0 +1,34 @@
+# Alerting rules. Adjust `job="wireguard"` to your scrape job name.
+groups:
+  - name: wireguard-alerts
+    rules:
+      - alert: WireGuardExporterDown
+        expr: up{job="wireguard"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "WireGuard exporter {{ $labels.instance }} is down"
+          description: "Prometheus cannot scrape {{ $labels.instance }} for 5 minutes."
+
+      - alert: WireGuardInterfaceReadFailed
+        expr: wireguard_scrape_success == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cannot read WireGuard interface {{ $labels.interface }} on {{ $labels.instance }}"
+          description: "Check CAP_NET_ADMIN and the exporter logs (docs/troubleshooting.md)."
+
+      # A handshake is renewed every 2 minutes while traffic flows or
+      # PersistentKeepalive is set. Idle peers without keepalive (e.g. road
+      # warriors) legitimately go quiet: limit this alert to always-on peers,
+      # for example by interface or by a label in wireguard_peer_name.
+      - alert: WireGuardPeerHandshakeStale
+        expr: wireguard_peer:handshake_age:seconds > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No handshake with peer {{ with $labels.name }}{{ . }}{{ else }}{{ $labels.public_key }}{{ end }} for over 5 minutes"
+          description: "Interface {{ $labels.interface }} on {{ $labels.instance }}: last handshake {{ $value | humanizeDuration }} ago."

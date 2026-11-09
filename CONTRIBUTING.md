@@ -63,6 +63,9 @@ schedule.
 | `src/model.rs` | platform-independent data types and the `Source` trait |
 | `contrib/` | systemd unit (shipped in release archives), docker-compose example |
 | `contrib/kubernetes/` | kustomize manifests, ServiceMonitor, sidecar example |
+| `contrib/prometheus/` | peer names example, recording and alerting rules, `promtool` tests |
+| `contrib/grafana/` | Grafana dashboard |
+| `docs/` | user documentation |
 | `charts/wireguard-exporter/` | Helm chart (published to `oci://ghcr.io/pessom/charts`) |
 | `Dockerfile` | runtime image from prebuilt binaries in `dist/<arch>/` |
 | `scripts/e2e.sh` | end-to-end test |
@@ -70,8 +73,11 @@ schedule.
 ## Pull requests
 
 - Keep a PR focused on one change; add or update tests for it.
-- CI (`fmt`, `clippy`, unit tests, `cargo deny`, e2e) must be green.
-- Update `README.md` when flags, metrics or behaviour change.
+- CI (`fmt`, `clippy`, unit tests, `cargo deny`, e2e for binary and image,
+  Helm/kustomize validation, `promtool` rule tests) must be green.
+- Update `docs/` (and `README.md` if needed) when flags, metrics or behaviour
+  change; keep `contrib/prometheus` rules, their tests and the Grafana
+  dashboard in sync with metric changes.
 - Write commit messages in the imperative mood, with a short summary line
   (≤ 72 chars), e.g. `collector: add wireguard_device_peers metric`.
 
@@ -90,8 +96,10 @@ them.
 
 1. Bump the version (SemVer) in `Cargo.toml` (run `cargo check` to update
    `Cargo.lock`), `version`/`appVersion` in `charts/wireguard-exporter/Chart.yaml`,
-   `newTag` in `contrib/kubernetes/kustomization.yaml` and the image tag in
-   `contrib/docker-compose.yml` and `contrib/kubernetes/examples/sidecar.yaml`; commit.
+   `newTag` in `contrib/kubernetes/kustomization.yaml` and the versions in
+   examples in `contrib/`, `docs/` and `README.md`
+   (`grep -rnE 'wireguard-exporter:[0-9]|--version [0-9]|VERSION=[0-9]' contrib docs README.md`);
+   commit.
 2. Tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`.
 3. The `Release` workflow verifies the tag matches `Cargo.toml`, the chart and
    the kustomization, runs tests, builds static musl binaries for amd64 and
