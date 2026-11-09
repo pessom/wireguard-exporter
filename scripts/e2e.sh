@@ -12,6 +12,11 @@ BIN="$(realpath "${1:?usage: $0 <binary>}")"
 PORT=19586
 NS=wge2e
 WORK="$(mktemp -d)"
+# The wg AppArmor profile (Ubuntu 26.04+) only lets wg read files under
+# /etc/wireguard, so the private keys must live there.
+sudo mkdir -p /etc/wireguard
+KEYDIR="$(sudo mktemp -d -p /etc/wireguard e2e.XXXXXX)"
+umask 077
 EXPORTER_PID=""
 
 cleanup() {
@@ -19,6 +24,7 @@ cleanup() {
     sudo ip link del wg-a 2>/dev/null || true
     sudo ip netns del "$NS" 2>/dev/null || true
     rm -rf "$WORK"
+    sudo rm -rf "$KEYDIR"
 }
 trap cleanup EXIT
 
@@ -29,10 +35,10 @@ fail() {
     exit 1
 }
 
-wg genkey > "$WORK/a.key"; wg pubkey < "$WORK/a.key" > "$WORK/a.pub"
-wg genkey > "$WORK/b.key"; wg pubkey < "$WORK/b.key" > "$WORK/b.pub"
-A_PUB="$(cat "$WORK/a.pub")"
-B_PUB="$(cat "$WORK/b.pub")"
+A_KEY="$(wg genkey)"; A_PUB="$(echo "$A_KEY" | wg pubkey)"
+B_KEY="$(wg genkey)"; B_PUB="$(echo "$B_KEY" | wg pubkey)"
+echo "$A_KEY" | sudo tee "$KEYDIR/a.key" >/dev/null
+echo "$B_KEY" | sudo tee "$KEYDIR/b.key" >/dev/null
 
 # wg-b is created in the root netns and then moved: its UDP socket stays in
 # the root netns, so both ends can talk over 127.0.0.1.
@@ -41,12 +47,12 @@ sudo ip link add wg-a type wireguard
 sudo ip link add wg-b type wireguard
 sudo ip link set wg-b netns "$NS"
 
-sudo wg set wg-a listen-port 51820 private-key "$WORK/a.key" \
+sudo wg set wg-a listen-port 51820 private-key "$KEYDIR/a.key" \
     peer "$B_PUB" allowed-ips 10.99.0.2/32 endpoint 127.0.0.1:51821
 sudo ip addr add 10.99.0.1/24 dev wg-a
 sudo ip link set wg-a up
 
-sudo ip netns exec "$NS" wg set wg-b listen-port 51821 private-key "$WORK/b.key" \
+sudo ip netns exec "$NS" wg set wg-b listen-port 51821 private-key "$KEYDIR/b.key" \
     peer "$A_PUB" allowed-ips 10.99.0.1/32 endpoint 127.0.0.1:51820
 sudo ip netns exec "$NS" ip addr add 10.99.0.2/24 dev wg-b
 sudo ip netns exec "$NS" ip link set wg-b up
