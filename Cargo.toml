@@ -2,7 +2,7 @@
 name = "wireguard-exporter"
 version = "0.1.1"
 edition = "2024"
-rust-version = "1.95"
+rust-version = "1.99"
 description = "Prometheus exporter for WireGuard (kernel netlink)"
 license = "MIT"
 repository = "https://github.com/pessom/wireguard-exporter"

@@ -1,0 +1,6 @@
+# Pinned compiler for local builds, CI and releases. Bumped by Dependabot.
+# Keep `rust-version` in Cargo.toml in sync.
+[toolchain]
+channel = "1.99.1"
+components = ["clippy", "rustfmt"]
+profile = "minimal"
