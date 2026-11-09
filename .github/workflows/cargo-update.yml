@@ -1,0 +1,69 @@
+name: cargo update
+
+# Monthly lockfile refresh for transitive dependencies (Dependabot only bumps
+# direct ones). The full CI runs here first; a PR is opened only if it passes.
+# PRs created with GITHUB_TOKEN do not trigger CI by themselves.
+
+on:
+  schedule:
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BRANCH: chore/cargo-update
+
+jobs:
+  update:
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.update.outputs.changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - run: rustup toolchain install
+      - id: update
+        run: |
+          cargo update 2>&1 | tee update.log
+          if git diff --quiet Cargo.lock; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git commit -q -F - Cargo.lock <<MSG
+          cargo update
+
+          $(grep -E '^\s+(Updating|Adding|Removing) ' update.log)
+          MSG
+          git push -f origin "$BRANCH"
+
+  ci:
+    needs: update
+    if: needs.update.outputs.changed == 'true'
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: chore/cargo-update
+
+  pr:
+    needs: ci
+    runs-on: ubuntu-26.04
+    permissions:
+      pull-requests: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            echo "PR already open, branch updated"
+            exit 0
+          fi
+          gh pr create --base main --head "$BRANCH" --label dependencies \
+            --title "cargo update" \
+            --body "Monthly \`cargo update\` of transitive dependencies. CI (check, deny, e2e) passed in [this run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID). Close and reopen the PR to run CI on it."

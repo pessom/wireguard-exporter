@@ -15,7 +15,7 @@ jobs:
   release:
     runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Check tag matches Cargo.toml version
         run: |
@@ -24,9 +24,8 @@ jobs:
           test "$tag" = "$ver" || { echo "tag v$tag != Cargo.toml $ver"; exit 1; }
           echo "VERSION=$ver" >> "$GITHUB_ENV"
 
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ env.TARGET }}
+      - name: Install Rust (rust-toolchain.toml)
+        run: rustup toolchain install && rustup target add "$TARGET"
 
       - name: Install musl tools
         run: sudo apt-get update && sudo apt-get install -y musl-tools
@@ -45,7 +44,7 @@ jobs:
           tar -C dist -czf "dist/$name.tar.gz" "$name"
           (cd dist && sha256sum "$name.tar.gz" > sha256sums.txt)
 
-      - uses: softprops/action-gh-release@v3
+      - uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         with:
           files: |
             dist/*.tar.gz

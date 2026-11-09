@@ -4,8 +4,9 @@ Thanks for your interest! Bug reports, ideas and pull requests are welcome.
 
 ## Getting started
 
-1. Install Rust via [rustup](https://rustup.rs) (stable, at least the version
-   in `rust-version` of `Cargo.toml`) with `clippy` and `rustfmt`.
+1. Install Rust via [rustup](https://rustup.rs). The compiler version is
+   pinned in `rust-toolchain.toml`; rustup installs it (with `clippy` and
+   `rustfmt`) automatically.
 2. Clone the repository and run the checks:
 
    ```sh
@@ -30,7 +31,21 @@ cargo build --release
 scripts/e2e.sh target/release/wireguard_exporter
 ```
 
-CI runs it on every push and pull request.
+CI runs it on every push and pull request, and weekly on a schedule.
+
+## Dependencies
+
+- `deny.toml` configures [cargo-deny](https://embarkstudios.github.io/cargo-deny/):
+  RustSec advisories, allowed licenses, duplicate crates and sources. CI runs
+  it on every PR and weekly; locally: `cargo deny check`.
+- Dependabot bumps direct crates (weekly), GitHub Actions and the Rust
+  toolchain (monthly), skipping releases younger than 7 days.
+- The `cargo update` workflow refreshes transitive dependencies in
+  `Cargo.lock` monthly. It runs the full CI first and opens a PR only if it
+  passes; that PR shows no checks (close and reopen it to run CI).
+- GitHub Actions are pinned by commit SHA with the version in a comment.
+- When bumping `rust-toolchain.toml`, keep `rust-version` in `Cargo.toml` in
+  sync.
 
 ## Project layout
 
@@ -46,7 +61,7 @@ CI runs it on every push and pull request.
 ## Pull requests
 
 - Keep a PR focused on one change; add or update tests for it.
-- CI (`fmt`, `clippy`, unit tests, e2e) must be green.
+- CI (`fmt`, `clippy`, unit tests, `cargo deny`, e2e) must be green.
 - Update `README.md` when flags, metrics or behaviour change.
 - Write commit messages in the imperative mood, with a short summary line
   (≤ 72 chars), e.g. `collector: add wireguard_device_peers metric`.
