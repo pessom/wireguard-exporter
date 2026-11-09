@@ -21,11 +21,13 @@ groups:
           description: "Check CAP_NET_ADMIN and the exporter logs (docs/troubleshooting.md)."
 
       # A handshake is renewed every 2 minutes while traffic flows or
-      # PersistentKeepalive is set. Idle peers without keepalive (e.g. road
-      # warriors) legitimately go quiet: limit this alert to always-on peers,
-      # for example by interface or by a label in wireguard_peer_name.
+      # PersistentKeepalive is set. Only peers with keepalive are expected to
+      # stay connected; idle peers without it (road warriors) go quiet.
       - alert: WireGuardPeerHandshakeStale
-        expr: wireguard_peer:handshake_age:seconds > 300
+        expr: |
+          wireguard_peer:handshake_age:seconds > 300
+          and on (job, instance, interface, public_key)
+          wireguard_peer_persistent_keepalive_seconds > 0
         for: 5m
         labels:
           severity: warning

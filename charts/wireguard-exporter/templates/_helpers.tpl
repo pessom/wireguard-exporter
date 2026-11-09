@@ -26,3 +26,11 @@ helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | 
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
+
+{{- define "wireguard-exporter.peerNamesConfigMap" -}}
+{{- if .Values.existingPeerNamesConfigMap }}
+{{- .Values.existingPeerNamesConfigMap }}
+{{- else if .Values.peerNames }}
+{{- printf "%s-peer-names" (include "wireguard-exporter.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}

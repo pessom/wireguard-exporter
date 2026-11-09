@@ -20,6 +20,25 @@ telemetryPath: /metrics
 # Fixed list of interfaces; empty means autodiscovery.
 interfaces: []
 logLevel: info
+
+# Friendly peer names, exported as wireguard_peer_name. Rendered into a
+# ConfigMap; changes are picked up without a restart (the kubelet syncs
+# ConfigMap volumes within about a minute).
+#   peerNames:
+#     "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=": alice-laptop
+#     "HIgo9xNzJMWLKASShiTqIybxZ0U3wGLiUeJ1PKf8ykw=":
+#       name: office-gateway
+#       site: fra
+peerNames: {}
+# Or use an existing ConfigMap with the key below instead of peerNames.
+existingPeerNamesConfigMap: ""
+peerNamesConfigMapKey: peers.yml
+
+collector:
+  # Export peer endpoints (public IPs) in wireguard_peer_info.
+  peerEndpoint: true
+  # Export allowed IPs (wireguard_peer_info label, wireguard_peer_allowed_ip).
+  peerAllowedIps: true
 extraArgs: []
 extraEnv: []
 

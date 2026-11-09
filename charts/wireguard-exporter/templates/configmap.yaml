@@ -1,0 +1,12 @@
+{{- if and .Values.peerNames (not .Values.existingPeerNamesConfigMap) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wireguard-exporter.peerNamesConfigMap" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wireguard-exporter.labels" . | nindent 4 }}
+data:
+  {{ .Values.peerNamesConfigMapKey }}: |
+    {{- toYaml .Values.peerNames | nindent 4 }}
+{{- end }}

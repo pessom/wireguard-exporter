@@ -33,8 +33,11 @@ The unit runs the exporter as a dynamic unprivileged user with only
 `NoNewPrivileges`. Flags go to `/etc/default/wireguard_exporter`:
 
 ```sh
-WG_EXPORTER_OPTS="--web.listen-address 10.0.0.1:9586 --wireguard.interfaces wg0"
+WG_EXPORTER_OPTS="--web.listen-address 10.0.0.1:9586 --wireguard.peer-names-file /etc/wireguard_exporter/peers.yml"
 ```
+
+The [peer names file](configuration.md#peer-names-file) only needs to be
+readable by the exporter's user (`chmod 0644`); it contains no secrets.
 
 Without systemd, grant the capability to the binary instead and run it as any
 user: `sudo setcap cap_net_admin+ep /usr/local/bin/wireguard_exporter`.
@@ -63,6 +66,15 @@ docker run -d --name wireguard-exporter --restart unless-stopped \
   namespace instead of the host's: `--network container:<wireguard-container>`.
 - Arguments after the image name are exporter flags, see
   [configuration](configuration.md).
+- Peer names: mount the directory with the
+  [names file](configuration.md#peer-names-file) read-only. The file must be
+  world-readable (`0644`): the container's root has no `DAC_OVERRIDE`.
+
+  ```sh
+  docker run ... -v /etc/wireguard_exporter:/etc/wireguard_exporter:ro \
+    ghcr.io/pessom/wireguard-exporter:0.2.0 \
+    --wireguard.peer-names-file /etc/wireguard_exporter/peers.yml
+  ```
 
 ### Why UID 0
 
@@ -107,6 +119,10 @@ Common values (see [`values.yaml`](../charts/wireguard-exporter/values.yaml)):
 | `serviceMonitor.enabled` | `false` | Create a `ServiceMonitor` |
 | `serviceMonitor.labels` | `{}` | Labels your Prometheus selects ServiceMonitors by (e.g. `release: kube-prometheus-stack`) |
 | `serviceMonitor.instanceFromNodeName` | `true` | `instance` = node name instead of `IP:port` |
+| `peerNames` | `{}` | [Peer names](configuration.md#peer-names-file) (public key → name or `{name, labels...}`), rendered into a ConfigMap; changes apply without a restart |
+| `existingPeerNamesConfigMap` | `""` | Use your ConfigMap (key `peerNamesConfigMapKey`, default `peers.yml`) instead of `peerNames` |
+| `collector.peerEndpoint` | `true` | Export peer endpoints ([privacy](configuration.md#privacy)) |
+| `collector.peerAllowedIps` | `true` | Export allowed IPs ([privacy](configuration.md#privacy)) |
 | `logLevel` | `info` | `RUST_LOG` |
 
 ## Kubernetes: kustomize
@@ -115,6 +131,10 @@ Common values (see [`values.yaml`](../charts/wireguard-exporter/values.yaml)):
 kubectl apply -k contrib/kubernetes                      # namespace, DaemonSet, Service
 kubectl apply -f contrib/kubernetes/servicemonitor.yaml  # with Prometheus Operator
 ```
+
+For peer names, add a ConfigMap (e.g. via `configMapGenerator`), mount it into
+the DaemonSet and add `--wireguard.peer-names-file` to its `args`; the Helm
+chart does exactly that with `peerNames`.
 
 Without the Prometheus Operator, the Service carries
 `prometheus.io/scrape: "true"` annotations, see
