@@ -15,6 +15,11 @@ The exporter lacks `CAP_NET_ADMIN` in the interface's network namespace.
 - Rootless Docker/nerdctl/Podman cannot read the host's tunnels at all, see
   [Rootless runtimes](installation.md#rootless-runtimes).
 
+## systemd: `Permission denied` reading the peer names file
+
+The unit uses a dynamic user that owns no files. The directory must be `0755`
+and the file `0644` (`sudo mkdir` with a restrictive umask creates `0700`).
+
 ## No `wireguard_*` interface metrics at all
 
 The exporter sees only interfaces in its own network namespace.

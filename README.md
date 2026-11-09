@@ -45,6 +45,7 @@ Binary + systemd, Kubernetes (Helm, kustomize, sidecar): see
 | | |
 |---|---|
 | [Installation](docs/installation.md) | Binary + systemd, Docker/nerdctl/Podman, Kubernetes; required privileges, rootless limits |
+| [Ansible](docs/ansible.md) | Example role without external dependencies (`ansible-pull`, offline mirrors) |
 | [Configuration](docs/configuration.md) | Flags, environment variables, interface discovery, security notes |
 | [Metrics](docs/metrics.md) | Metrics, labels, semantics, cardinality |
 | [Prometheus and Grafana](docs/prometheus.md) | Scrape configs, **peer names**, PromQL, alerts, dashboard |
