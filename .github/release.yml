@@ -1,0 +1,19 @@
+# Categories of the automatically generated release notes (by PR labels).
+changelog:
+  exclude:
+    labels: [invalid, duplicate, wontfix]
+  categories:
+    - title: Breaking changes
+      labels: [breaking-change]
+    - title: Security
+      labels: [security]
+    - title: Features
+      labels: [enhancement]
+    - title: Bug fixes
+      labels: [bug]
+    - title: Documentation
+      labels: [documentation]
+    - title: Dependencies
+      labels: [dependencies]
+    - title: Other changes
+      labels: ["*"]

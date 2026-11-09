@@ -1,0 +1,40 @@
+name: Close stale needs-info
+
+# Only issues/PRs waiting for the author (label needs-info) are affected:
+# stale after 14 days without activity, closed 7 days later. Any activity
+# removes the stale state and the needs-info label.
+
+on:
+  schedule:
+    - cron: "30 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stale:
+    runs-on: ubuntu-26.04
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11.0.0
+        with:
+          only-labels: needs-info
+          days-before-stale: 14
+          days-before-close: 7
+          stale-issue-label: stale
+          stale-pr-label: stale
+          labels-to-remove-when-unstale: needs-info
+          stale-issue-message: >
+            This issue is waiting for information from the author for 14 days.
+            It will be closed in 7 days unless there is new activity.
+          close-issue-message: >
+            Closed because the requested information was not provided.
+            Feel free to reopen with the details.
+          stale-pr-message: >
+            This pull request is waiting for changes from the author for 14 days.
+            It will be closed in 7 days unless there is new activity.
+          close-pr-message: >
+            Closed because of no activity. Feel free to reopen when you continue.

@@ -1,6 +1,12 @@
 # Contributing
 
 Thanks for your interest! Bug reports, ideas and pull requests are welcome.
+Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+- Questions: [Discussions → Q&A](https://github.com/pessom/wireguard-exporter/discussions/categories/q-a).
+- Bugs and feature requests: [issue templates](https://github.com/pessom/wireguard-exporter/issues/new/choose).
+- For larger changes (new metrics, flags, deployment options) open a feature
+  request first, so the design can be agreed before you write code.
 
 ## Getting started
 
@@ -108,8 +114,24 @@ them.
    - image `ghcr.io/pessom/wireguard-exporter:X.Y.Z` (`X.Y`, `latest`);
    - chart `oci://ghcr.io/pessom/charts/wireguard-exporter` version `X.Y.Z`.
 
+## Issue triage (maintainers)
+
+| Label | Meaning |
+|---|---|
+| `needs-triage` | New, not reviewed yet (set by the issue templates) |
+| `needs-info` | Waiting for the author; closed automatically after 14 + 7 days without activity |
+| `bug`, `enhancement`, `documentation`, `question` | Type |
+| `breaking-change` | Changes the metrics contract or flags incompatibly |
+| `security` | Security-relevant change |
+| `good first issue`, `help wanted` | Open for contributors |
+
+Labels on merged PRs define the sections of the release notes
+(`.github/release.yml`): `breaking-change`, `security`, `enhancement`, `bug`,
+`documentation`, `dependencies`. PRs are merged with squash; the PR title
+becomes the commit message.
+
 ## Reporting bugs
 
-Open an issue with the exporter version (`wireguard_exporter --version`),
-kernel version (`uname -r`), the command line used and the relevant part of
-`/metrics` or logs. Never post private keys.
+Use the [bug report template](https://github.com/pessom/wireguard-exporter/issues/new?template=bug_report.yml):
+it asks for the exporter version, how it is run, kernel version, the command
+line and the relevant part of `/metrics` or logs. Never post private keys.
