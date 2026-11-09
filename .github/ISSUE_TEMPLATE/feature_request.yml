@@ -1,0 +1,35 @@
+name: Feature request
+description: Suggest a new metric, flag or deployment option
+labels: [enhancement, needs-triage]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to monitor or achieve, and why is it hard today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: For metrics, include the name, type, labels and an example PromQL query.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you use now (PromQL, relabeling, other exporters).
+  - type: checkboxes
+    id: compat
+    attributes:
+      label: Compatibility
+      options:
+        - label: The proposal does not rename or remove existing metrics or labels, and adds no high-cardinality labels to per-peer series (see CONTRIBUTING.md, "Metrics compatibility").
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to implement this myself.

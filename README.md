@@ -1,5 +1,9 @@
 # wireguard-exporter
 
+[![CI](https://github.com/pessom/wireguard-exporter/actions/workflows/ci.yml/badge.svg)](https://github.com/pessom/wireguard-exporter/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/pessom/wireguard-exporter)](https://github.com/pessom/wireguard-exporter/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/pessom/wireguard-exporter)](LICENSE)
+
 Prometheus exporter for Linux kernel WireGuard interfaces. Reads state via
 netlink (no `wg` binary needed) and ships as a single static binary and a
 `FROM scratch` container image for `amd64` and `arm64`.
@@ -46,6 +50,7 @@ Binary + systemd, Kubernetes (Helm, kustomize, sidecar): see
 | [Prometheus and Grafana](docs/prometheus.md) | Scrape configs, **peer names**, PromQL, alerts, dashboard |
 | [Troubleshooting](docs/troubleshooting.md) | Common problems |
 | [Contributing](CONTRIBUTING.md) | Development, tests, releasing |
+| [Support](SUPPORT.md) | Where to ask questions and report problems |
 
 ## License
 

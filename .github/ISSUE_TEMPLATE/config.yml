@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or help
+    url: https://github.com/pessom/wireguard-exporter/discussions/categories/q-a
+    about: Ask how to install, configure or query the exporter.
+  - name: Documentation
+    url: https://github.com/pessom/wireguard-exporter/tree/main/docs
+    about: Installation, configuration, metrics, Prometheus and Grafana.
+  - name: Troubleshooting
+    url: https://github.com/pessom/wireguard-exporter/blob/main/docs/troubleshooting.md
+    about: Common problems and their solutions.
