@@ -6,7 +6,7 @@
 # with CAP_NET_ADMIN and checks the exposed metrics.
 #
 # Usage: scripts/e2e.sh <path-to-wireguard_exporter-binary>
-set -euo pipefail
+set -euxo pipefail
 
 BIN="$(realpath "${1:?usage: $0 <binary>}")"
 PORT=19586

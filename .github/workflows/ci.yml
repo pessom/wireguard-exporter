@@ -36,3 +36,14 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y wireguard-tools
       - run: cargo build --release --locked
       - run: scripts/e2e.sh target/release/wireguard_exporter
+      - name: Diagnostics (temporary)
+        if: failure()
+        run: |
+          set -x
+          command -v wg; ls -l "$(command -v wg)"
+          sudo aa-status 2>&1 | grep -iE 'wg|wireguard|profiles' || true
+          ls /etc/apparmor.d | grep -iE 'wg|wireguard' || true
+          for f in /etc/apparmor.d/*wg* /etc/apparmor.d/*wireguard*; do [ -f "$f" ] && sudo cat "$f"; done || true
+          sudo dmesg | grep -iE 'apparmor|denied' | tail -30 || true
+          sudo journalctl -k --no-pager | grep -iE 'apparmor.*DENIED' | tail -30 || true
+          echo 'test' | sudo wg pubkey; wg genkey | sudo strace -f -e trace=openat wg set lo private-key /dev/stdin 2>&1 | tail -20 || true
