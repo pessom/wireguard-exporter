@@ -80,7 +80,8 @@ wg genpsk | sudo tee "$KEYDIR/psk" >/dev/null
 # the systemd dynamic user owns nothing. Written with sudo tee, which also
 # rewrites in place (a single-file bind mount does not follow a new inode).
 if [[ "$MODE" == systemd ]]; then
-    sudo mkdir -p /etc/wireguard_exporter
+    # 0755: the dynamic user must be able to traverse it (umask here is 077).
+    sudo install -d -m 0755 /etc/wireguard_exporter
     NAMES=/etc/wireguard_exporter/peers.yml
 else
     NAMES="$WORK/peers.yml"
