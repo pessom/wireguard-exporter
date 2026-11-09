@@ -12,6 +12,7 @@ BIN="$(realpath "${1:?usage: $0 <binary>}")"
 PORT=19586
 NS=wge2e
 WORK="$(mktemp -d)"
+umask 077
 EXPORTER_PID=""
 
 cleanup() {
@@ -41,12 +42,12 @@ sudo ip link add wg-a type wireguard
 sudo ip link add wg-b type wireguard
 sudo ip link set wg-b netns "$NS"
 
-sudo wg set wg-a listen-port 51820 private-key "$WORK/a.key" \
+sudo wg set wg-a listen-port 51820 private-key /dev/stdin < "$WORK/a.key" \
     peer "$B_PUB" allowed-ips 10.99.0.2/32 endpoint 127.0.0.1:51821
 sudo ip addr add 10.99.0.1/24 dev wg-a
 sudo ip link set wg-a up
 
-sudo ip netns exec "$NS" wg set wg-b listen-port 51821 private-key "$WORK/b.key" \
+sudo ip netns exec "$NS" wg set wg-b listen-port 51821 private-key /dev/stdin < "$WORK/b.key" \
     peer "$A_PUB" allowed-ips 10.99.0.1/32 endpoint 127.0.0.1:51820
 sudo ip netns exec "$NS" ip addr add 10.99.0.2/24 dev wg-b
 sudo ip netns exec "$NS" ip link set wg-b up

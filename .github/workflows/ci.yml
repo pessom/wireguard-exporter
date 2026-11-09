@@ -13,7 +13,7 @@ env:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -26,7 +26,7 @@ jobs:
 
   e2e:
     # Real kernel WireGuard: tunnel + handshake + exporter with CAP_NET_ADMIN.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: check
     steps:
       - uses: actions/checkout@v7
