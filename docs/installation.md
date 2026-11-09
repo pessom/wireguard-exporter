@@ -17,7 +17,7 @@ Supported architectures: `amd64`, `arm64`. Linux only.
 ## Binary + systemd
 
 ```sh
-VERSION=0.2.0 ARCH=amd64   # or arm64
+VERSION=0.3.0 ARCH=amd64   # or arm64
 curl -fsSLO https://github.com/pessom/wireguard-exporter/releases/download/v$VERSION/wireguard_exporter-$VERSION.linux-$ARCH.tar.gz
 curl -fsSL  https://github.com/pessom/wireguard-exporter/releases/download/v$VERSION/sha256sums.txt | sha256sum -c --ignore-missing
 tar -xzf wireguard_exporter-$VERSION.linux-$ARCH.tar.gz
@@ -56,7 +56,7 @@ docker run -d --name wireguard-exporter --restart unless-stopped \
   --cap-drop ALL --cap-add NET_ADMIN \
   --security-opt no-new-privileges \
   --read-only \
-  ghcr.io/pessom/wireguard-exporter:0.2.0
+  ghcr.io/pessom/wireguard-exporter:0.3.0
 ```
 
 - **nerdctl** and **Podman** take exactly the same flags
@@ -72,7 +72,7 @@ docker run -d --name wireguard-exporter --restart unless-stopped \
 
   ```sh
   docker run ... -v /etc/wireguard_exporter:/etc/wireguard_exporter:ro \
-    ghcr.io/pessom/wireguard-exporter:0.2.0 \
+    ghcr.io/pessom/wireguard-exporter:0.3.0 \
     --wireguard.peer-names-file /etc/wireguard_exporter/peers.yml
   ```
 
@@ -104,7 +104,7 @@ Pod Security Standards, so the namespace must be `privileged`:
 kubectl create namespace wireguard-exporter
 kubectl label namespace wireguard-exporter pod-security.kubernetes.io/enforce=privileged
 helm install wireguard-exporter oci://ghcr.io/pessom/charts/wireguard-exporter \
-  --version 0.2.0 --namespace wireguard-exporter \
+  --version 0.3.0 --namespace wireguard-exporter \
   --set serviceMonitor.enabled=true
 ```
 
