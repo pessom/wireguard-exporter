@@ -32,7 +32,7 @@ roles/wireguard-exporter/
 
 ```yaml
 ---
-wireguard_exporter_version: "0.3.0"
+wireguard_exporter_version: "0.3.1"
 wireguard_exporter_install_path: /opt/wireguard_exporter
 wireguard_exporter_listen_address: "0.0.0.0:9586"
 # Empty: autodiscovery of all WireGuard interfaces.

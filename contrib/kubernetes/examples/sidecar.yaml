@@ -20,7 +20,7 @@ spec:
         capabilities:
           add: [NET_ADMIN]
     - name: wireguard-exporter
-      image: ghcr.io/pessom/wireguard-exporter:0.3.0
+      image: ghcr.io/pessom/wireguard-exporter:0.3.1
       ports:
         - name: metrics
           containerPort: 9586

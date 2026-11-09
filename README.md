@@ -26,7 +26,7 @@ netlink (no `wg` binary needed) and ships as a single static binary and a
 # Container, monitoring the host's tunnels
 docker run -d --name wireguard-exporter --network host \
   --cap-drop ALL --cap-add NET_ADMIN --security-opt no-new-privileges --read-only \
-  ghcr.io/pessom/wireguard-exporter:0.3.0
+  ghcr.io/pessom/wireguard-exporter:0.3.1
 
 curl -s localhost:9586/metrics
 ```
