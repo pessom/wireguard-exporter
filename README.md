@@ -1,61 +1,48 @@
 # wireguard-exporter
 
-Prometheus exporter for Linux kernel WireGuard interfaces. Reads data via
-netlink (no `wg` binary needed), ships as a single static binary.
+Prometheus exporter for Linux kernel WireGuard interfaces. Reads state via
+netlink (no `wg` binary needed) and ships as a single static binary and a
+`FROM scratch` container image for `amd64` and `arm64`.
 
-## Metrics
+- Per-peer traffic, last handshake, endpoint and allowed IPs; per-interface
+  status and peer count — see [metrics](docs/metrics.md).
+- Needs only `CAP_NET_ADMIN`: systemd unit, container and Kubernetes
+  manifests run it with that single capability.
+- Interfaces are discovered automatically on every scrape.
+- Ready-made Helm chart, kustomize manifests, recording and alerting rules
+  and a Grafana dashboard.
 
-| Metric | Type | Labels |
-|---|---|---|
-| `wireguard_peer_last_handshake_timestamp_seconds` | gauge (unix time, 0 = never) | `interface`, `public_key` |
-| `wireguard_peer_receive_bytes_total` | counter | `interface`, `public_key` |
-| `wireguard_peer_transmit_bytes_total` | counter | `interface`, `public_key` |
-| `wireguard_peer_info` | gauge, always 1 | `interface`, `public_key`, `endpoint`, `allowed_ips` |
-| `wireguard_device_info` | gauge, always 1 | `interface`, `listen_port` |
-| `wireguard_device_peers` | gauge | `interface` |
-| `wireguard_scrape_success` | gauge (1/0) | `interface` |
+## Quick start
 
-`endpoint` is exposed only in `wireguard_peer_info`, so roaming clients do not
-create new time series. Join it when needed:
+```sh
+# Container, monitoring the host's tunnels
+docker run -d --name wireguard-exporter --network host \
+  --cap-drop ALL --cap-add NET_ADMIN --security-opt no-new-privileges --read-only \
+  ghcr.io/pessom/wireguard-exporter:0.2.0
 
-```promql
-wireguard_peer_receive_bytes_total * on (interface, public_key) group_left(endpoint) wireguard_peer_info
+curl -s localhost:9586/metrics
 ```
 
-Friendly peer names are intentionally not part of the exporter; add them with
-`metric_relabel_configs` in Prometheus (map `public_key` to a `peer` label).
-
-## Usage
-
 ```
-wireguard_exporter [--web.listen-address 0.0.0.0:9586] [--web.telemetry-path /metrics]
-                   [--wireguard.interfaces wg0,wg1]
+wireguard_peer_last_handshake_timestamp_seconds{interface="wg0",public_key="xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg="} 1762679431.0
+wireguard_peer_receive_bytes_total{interface="wg0",public_key="xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg="} 532
+wireguard_peer_info{interface="wg0",public_key="xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=",endpoint="203.0.113.7:51820",allowed_ips="10.0.0.2/32"} 1
 ```
 
-Without `--wireguard.interfaces` all WireGuard interfaces are discovered on
-each scrape (`/sys/class/net/*/uevent` with `DEVTYPE=wireguard`).
-Every flag has an env variable: `WG_EXPORTER_LISTEN`, `WG_EXPORTER_PATH`,
-`WG_EXPORTER_INTERFACES`. Log level: `RUST_LOG` (default `info`).
+Binary + systemd, Kubernetes (Helm, kustomize, sidecar): see
+[installation](docs/installation.md).
 
-## Privileges
+## Documentation
 
-Reading WireGuard state requires `CAP_NET_ADMIN`. Run as an unprivileged user
-with an ambient capability, see `contrib/wireguard_exporter.service`.
+| | |
+|---|---|
+| [Installation](docs/installation.md) | Binary + systemd, Docker/nerdctl/Podman, Kubernetes; required privileges, rootless limits |
+| [Configuration](docs/configuration.md) | Flags, environment variables, interface discovery, security notes |
+| [Metrics](docs/metrics.md) | Metrics, labels, semantics, cardinality |
+| [Prometheus and Grafana](docs/prometheus.md) | Scrape configs, **peer names**, PromQL, alerts, dashboard |
+| [Troubleshooting](docs/troubleshooting.md) | Common problems |
+| [Contributing](CONTRIBUTING.md) | Development, tests, releasing |
 
-## Install
+## License
 
-Download `wireguard_exporter-<version>.linux-amd64.tar.gz` from
-[Releases](https://github.com/pessom/wireguard-exporter/releases) and verify it
-with `sha256sums.txt`.
-
-## Development
-
-```
-cargo test
-cargo clippy --all-targets -- -D warnings
-cargo fmt --all
-```
-
-Releases are built by GitHub Actions on `v*` tags (tag must match the version
-in `Cargo.toml`). See [CONTRIBUTING.md](CONTRIBUTING.md) for details, including
-the end-to-end test against real WireGuard.
+[MIT](LICENSE)

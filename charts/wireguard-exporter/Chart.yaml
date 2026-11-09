@@ -1,0 +1,12 @@
+apiVersion: v2
+name: wireguard-exporter
+description: Prometheus exporter for WireGuard (kernel netlink), deployed as a DaemonSet
+type: application
+# version and appVersion are set to the release version on publish
+# (helm package --version/--app-version), keep them in sync with Cargo.toml.
+version: 0.2.0
+appVersion: "0.2.0"
+home: https://github.com/pessom/wireguard-exporter
+sources:
+  - https://github.com/pessom/wireguard-exporter
+keywords: [wireguard, prometheus, exporter, vpn]

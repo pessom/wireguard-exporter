@@ -1,0 +1,67 @@
+# Monitors WireGuard interfaces of every node: shares the host network
+# namespace and needs CAP_NET_ADMIN only.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: wireguard-exporter
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wireguard-exporter
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wireguard-exporter
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      # Run on every node, including control plane and tainted ones.
+      tolerations:
+        - operator: Exists
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: wireguard-exporter
+          image: ghcr.io/pessom/wireguard-exporter
+          args:
+            # Listens on all node addresses (host network). Restrict with
+            # --web.listen-address=$(HOST_IP):9586 if needed.
+            - --web.listen-address=0.0.0.0:9586
+          env:
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+          ports:
+            - name: metrics
+              containerPort: 9586
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: metrics
+          readinessProbe:
+            httpGet:
+              path: /
+              port: metrics
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            # UID 0 with a single capability: non-root would need file
+            # capabilities, which allowPrivilegeEscalation: false disables.
+            runAsUser: 0
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+              add: [NET_ADMIN]

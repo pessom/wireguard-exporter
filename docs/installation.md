@@ -1,0 +1,128 @@
+# Installation
+
+The exporter must run in the **network namespace of the WireGuard interfaces**
+it monitors and needs **`CAP_NET_ADMIN`** there. Nothing else: no root, no
+`wg` binary, no kernel module access, no `/dev/net/tun`, no writable sysfs.
+
+| Method | Use when |
+|---|---|
+| [Binary + systemd](#binary--systemd) | WireGuard runs on a regular Linux host |
+| [Docker / nerdctl / Podman](#containers) | You run everything in containers |
+| [Kubernetes: Helm](#kubernetes-helm) | Nodes have WireGuard interfaces (CNI, site-to-site, gateways) |
+| [Kubernetes: kustomize](#kubernetes-kustomize) | Same, plain manifests |
+| [Kubernetes: sidecar](#kubernetes-sidecar) | WireGuard runs inside a pod |
+
+Supported architectures: `amd64`, `arm64`. Linux only.
+
+## Binary + systemd
+
+```sh
+VERSION=0.2.0 ARCH=amd64   # or arm64
+curl -fsSLO https://github.com/pessom/wireguard-exporter/releases/download/v$VERSION/wireguard_exporter-$VERSION.linux-$ARCH.tar.gz
+curl -fsSL  https://github.com/pessom/wireguard-exporter/releases/download/v$VERSION/sha256sums.txt | sha256sum -c --ignore-missing
+tar -xzf wireguard_exporter-$VERSION.linux-$ARCH.tar.gz
+sudo install -m 0755 wireguard_exporter-$VERSION.linux-$ARCH/wireguard_exporter /usr/local/bin/
+sudo install -m 0644 wireguard_exporter-$VERSION.linux-$ARCH/wireguard_exporter.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now wireguard_exporter
+curl -s localhost:9586/metrics | head
+```
+
+The unit runs the exporter as a dynamic unprivileged user with only
+`CAP_NET_ADMIN` (`AmbientCapabilities`), read-only filesystem and
+`NoNewPrivileges`. Flags go to `/etc/default/wireguard_exporter`:
+
+```sh
+WG_EXPORTER_OPTS="--web.listen-address 10.0.0.1:9586 --wireguard.interfaces wg0"
+```
+
+Without systemd, grant the capability to the binary instead and run it as any
+user: `sudo setcap cap_net_admin+ep /usr/local/bin/wireguard_exporter`.
+
+## Containers
+
+Image: `ghcr.io/pessom/wireguard-exporter:<version>` (also `<major>.<minor>`
+and `latest`), multi-arch, `FROM scratch` (only the static binary).
+
+To monitor the **host's** tunnels, share the host network and grant only
+`NET_ADMIN`:
+
+```sh
+docker run -d --name wireguard-exporter --restart unless-stopped \
+  --network host \
+  --cap-drop ALL --cap-add NET_ADMIN \
+  --security-opt no-new-privileges \
+  --read-only \
+  ghcr.io/pessom/wireguard-exporter:0.2.0
+```
+
+- **nerdctl** and **Podman** take exactly the same flags
+  (`nerdctl run ...`, `podman run ...`).
+- **Docker Compose**: [`contrib/docker-compose.yml`](../contrib/docker-compose.yml).
+- To monitor a tunnel owned by **another container**, join its network
+  namespace instead of the host's: `--network container:<wireguard-container>`.
+- Arguments after the image name are exporter flags, see
+  [configuration](configuration.md).
+
+### Why UID 0
+
+The process runs as UID 0 but with a single capability (`NET_ADMIN`); all
+others are dropped, privilege escalation is disabled and the filesystem is
+read-only. A non-root user would need file capabilities on the binary, and
+those are ignored when `no-new-privileges` (Kubernetes:
+`allowPrivilegeEscalation: false`) is set — that trade-off is worse.
+
+### Rootless runtimes
+
+With rootless Docker/nerdctl/Podman (or any user namespace), the container's
+`NET_ADMIN` is only valid in namespaces owned by its user namespace. The host
+network namespace is not one of them, so **the host's tunnels cannot be read**
+(`scrape_success 0`, `Operation not permitted` in logs). Use a rootful
+runtime, or run the exporter next to a WireGuard instance that itself runs in
+the rootless container's network namespace (sidecar).
+
+## Kubernetes: Helm
+
+The chart deploys a DaemonSet with `hostNetwork: true` and `NET_ADMIN`, a
+headless Service and, optionally, a Prometheus Operator `ServiceMonitor`.
+`hostNetwork` and `NET_ADMIN` are rejected by the `baseline` and `restricted`
+Pod Security Standards, so the namespace must be `privileged`:
+
+```sh
+kubectl create namespace wireguard-exporter
+kubectl label namespace wireguard-exporter pod-security.kubernetes.io/enforce=privileged
+helm install wireguard-exporter oci://ghcr.io/pessom/charts/wireguard-exporter \
+  --version 0.2.0 --namespace wireguard-exporter \
+  --set serviceMonitor.enabled=true
+```
+
+Common values (see [`values.yaml`](../charts/wireguard-exporter/values.yaml)):
+
+| Value | Default | Description |
+|---|---|---|
+| `interfaces` | `[]` | Fixed interface list; empty = autodiscovery |
+| `port` | `9586` | Port, opened on every node (host network) |
+| `listenAddress` | `0.0.0.0:<port>` | Bind address |
+| `nodeSelector` / `tolerations` | all nodes | Where to run |
+| `serviceMonitor.enabled` | `false` | Create a `ServiceMonitor` |
+| `serviceMonitor.labels` | `{}` | Labels your Prometheus selects ServiceMonitors by (e.g. `release: kube-prometheus-stack`) |
+| `serviceMonitor.instanceFromNodeName` | `true` | `instance` = node name instead of `IP:port` |
+| `logLevel` | `info` | `RUST_LOG` |
+
+## Kubernetes: kustomize
+
+```sh
+kubectl apply -k contrib/kubernetes                      # namespace, DaemonSet, Service
+kubectl apply -f contrib/kubernetes/servicemonitor.yaml  # with Prometheus Operator
+```
+
+Without the Prometheus Operator, the Service carries
+`prometheus.io/scrape: "true"` annotations, see
+[Prometheus configuration](prometheus.md#kubernetes).
+
+## Kubernetes: sidecar
+
+If WireGuard runs inside a pod, add the exporter as a second container: the
+containers share the pod network namespace, so neither `hostNetwork` nor a
+privileged namespace is needed. Example:
+[`contrib/kubernetes/examples/sidecar.yaml`](../contrib/kubernetes/examples/sidecar.yaml).

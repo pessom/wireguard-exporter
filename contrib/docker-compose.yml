@@ -1,0 +1,12 @@
+# docker compose -f contrib/docker-compose.yml up -d
+# Monitors the host's WireGuard interfaces with the minimal privileges.
+services:
+  wireguard-exporter:
+    image: ghcr.io/pessom/wireguard-exporter:0.2.0
+    restart: unless-stopped
+    network_mode: host
+    cap_drop: [ALL]
+    cap_add: [NET_ADMIN]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    # command: ["--web.listen-address", "127.0.0.1:9586", "--wireguard.interfaces", "wg0"]

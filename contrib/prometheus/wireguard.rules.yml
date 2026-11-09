@@ -1,0 +1,31 @@
+# Recording rules: per-peer rates and handshake age with a `name` label.
+# Peers without an entry in wireguard_peer_name are kept, without `name`.
+groups:
+  - name: wireguard
+    rules:
+      # One series per key even if names come from several sources.
+      - record: wireguard_peer:name:info
+        expr: max by (public_key, name) (wireguard_peer_name)
+
+      - record: wireguard_peer:receive_bytes:rate5m
+        expr: |
+          rate(wireguard_peer_receive_bytes_total[5m])
+            * on (public_key) group_left (name) wireguard_peer:name:info
+          or on (job, instance, interface, public_key)
+          rate(wireguard_peer_receive_bytes_total[5m])
+
+      - record: wireguard_peer:transmit_bytes:rate5m
+        expr: |
+          rate(wireguard_peer_transmit_bytes_total[5m])
+            * on (public_key) group_left (name) wireguard_peer:name:info
+          or on (job, instance, interface, public_key)
+          rate(wireguard_peer_transmit_bytes_total[5m])
+
+      # Seconds since the last handshake; peers that never connected are
+      # excluded (timestamp 0).
+      - record: wireguard_peer:handshake_age:seconds
+        expr: |
+          (time() - (wireguard_peer_last_handshake_timestamp_seconds > 0))
+            * on (public_key) group_left (name) wireguard_peer:name:info
+          or on (job, instance, interface, public_key)
+          time() - (wireguard_peer_last_handshake_timestamp_seconds > 0)

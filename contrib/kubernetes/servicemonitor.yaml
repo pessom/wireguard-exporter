@@ -1,0 +1,19 @@
+# Prometheus Operator: kubectl apply -f contrib/kubernetes/servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: wireguard-exporter
+  namespace: wireguard-exporter
+  labels:
+    app.kubernetes.io/name: wireguard-exporter
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wireguard-exporter
+  endpoints:
+    - port: metrics
+      interval: 30s
+      relabelings:
+        # Node name instead of pod name in the `instance` label.
+        - sourceLabels: [__meta_kubernetes_pod_node_name]
+          targetLabel: instance

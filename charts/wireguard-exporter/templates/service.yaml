@@ -1,0 +1,24 @@
+{{- if .Values.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wireguard-exporter.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wireguard-exporter.labels" . | nindent 4 }}
+  annotations:
+    {{- with .Values.service.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    prometheus.io/port: {{ .Values.port | quote }}
+    prometheus.io/path: {{ .Values.telemetryPath | quote }}
+spec:
+  clusterIP: None
+  selector:
+    {{- include "wireguard-exporter.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: metrics
+      port: {{ .Values.port }}
+      targetPort: metrics
+      protocol: TCP
+{{- end }}
