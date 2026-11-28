@@ -55,6 +55,8 @@ jobs:
         with:
           pattern: wireguard_exporter-linux-*
           path: artifacts
+      - name: Install nfpm
+        run: scripts/install-nfpm.sh
       - name: Package
         run: |
           for arch in amd64 arm64; do
@@ -63,12 +65,15 @@ jobs:
             install -m 0755 "artifacts/wireguard_exporter-linux-$arch/wireguard_exporter" "dist/$name/"
             cp LICENSE README.md contrib/wireguard_exporter.service "dist/$name/"
             tar -C dist -czf "dist/$name.tar.gz" "$name"
+            scripts/package.sh "$VERSION" "$arch" "dist/$name/wireguard_exporter" dist
           done
-          (cd dist && sha256sum *.tar.gz > sha256sums.txt)
+          (cd dist && sha256sum *.tar.gz *.deb *.rpm > sha256sums.txt)
       - uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         with:
           files: |
             dist/*.tar.gz
+            dist/*.deb
+            dist/*.rpm
             dist/sha256sums.txt
           generate_release_notes: true
 

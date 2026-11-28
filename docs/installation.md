@@ -6,7 +6,8 @@ it monitors and needs **`CAP_NET_ADMIN`** there. Nothing else: no root, no
 
 | Method | Use when |
 |---|---|
-| [Binary + systemd](#binary--systemd) | WireGuard runs on a regular Linux host |
+| [.deb / .rpm package](#deb--rpm-packages) | WireGuard runs on Debian/Ubuntu or RHEL/Fedora-like hosts |
+| [Binary + systemd](#binary--systemd) | WireGuard runs on any other Linux host |
 | [Ansible](ansible.md) | Same, automated (example role, works with `ansible-pull`) |
 | [Docker / nerdctl / Podman](#containers) | You run everything in containers |
 | [Kubernetes: Helm](#kubernetes-helm) | Nodes have WireGuard interfaces (CNI, site-to-site, gateways) |
@@ -14,6 +15,48 @@ it monitors and needs **`CAP_NET_ADMIN`** there. Nothing else: no root, no
 | [Kubernetes: sidecar](#kubernetes-sidecar) | WireGuard runs inside a pod |
 
 Supported architectures: `amd64`, `arm64`. Linux only.
+
+## .deb / .rpm packages
+
+Published with every release starting with 0.3.3. Each package contains the
+binary (`/usr/bin/wireguard_exporter`), the same hardened systemd unit as
+[below](#binary--systemd) (`/usr/lib/systemd/system/wireguard_exporter.service`)
+and the flags file `/etc/default/wireguard_exporter`.
+
+```sh
+VERSION=0.3.2
+BASE=https://github.com/pessom/wireguard-exporter/releases/download/v$VERSION
+
+# Debian, Ubuntu (amd64 or arm64)
+curl -fsSLO $BASE/wireguard-exporter_$VERSION-1_amd64.deb
+curl -fsSL $BASE/sha256sums.txt | sha256sum -c --ignore-missing
+sudo apt install ./wireguard-exporter_$VERSION-1_amd64.deb
+
+# RHEL, Fedora, Rocky, Alma (x86_64 or aarch64)
+curl -fsSLO $BASE/wireguard-exporter-$VERSION-1.x86_64.rpm
+curl -fsSL $BASE/sha256sums.txt | sha256sum -c --ignore-missing
+sudo dnf install ./wireguard-exporter-$VERSION-1.x86_64.rpm
+
+sudo systemctl enable --now wireguard_exporter
+curl -s localhost:9586/metrics | head
+```
+
+- The service is **not started on install**; enable it when ready. Set flags
+  in `/etc/default/wireguard_exporter` (see [below](#binary--systemd)) and
+  `sudo systemctl restart wireguard_exporter`.
+- **Upgrade**: install the newer package the same way. A running service is
+  restarted with the new binary; your `/etc/default/wireguard_exporter` is
+  kept.
+- **Remove**: `sudo apt remove wireguard-exporter` /
+  `sudo dnf remove wireguard-exporter` stops and disables the service.
+- **Switching from the archive install**: remove the old files first, or the
+  unit in `/etc/systemd/system` overrides the packaged one:
+
+  ```sh
+  sudo systemctl disable --now wireguard_exporter
+  sudo rm /usr/local/bin/wireguard_exporter /etc/systemd/system/wireguard_exporter.service
+  sudo systemctl daemon-reload
+  ```
 
 ## Binary + systemd
 

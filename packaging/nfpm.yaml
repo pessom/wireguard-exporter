@@ -1,0 +1,55 @@
+# nfpm config for the .deb and .rpm packages. Used by scripts/package.sh,
+# which substitutes @VERSION@ and @ARCH@ and runs nfpm from a staging
+# directory with the binary and the unit in place.
+name: wireguard-exporter
+arch: "@ARCH@"
+platform: linux
+version: "@VERSION@"
+release: 1
+section: net
+priority: optional
+maintainer: pessom <4654636+pessom@users.noreply.github.com>
+vendor: pessom
+homepage: https://github.com/pessom/wireguard-exporter
+license: MIT
+description: |-
+  Prometheus exporter for Linux kernel WireGuard interfaces.
+  Reads WireGuard state via netlink (no wg binary needed) and exports
+  per-peer traffic, handshakes, endpoints and allowed IPs, with optional
+  friendly peer names. Runs as a hardened systemd service with only
+  CAP_NET_ADMIN.
+
+contents:
+  - src: ./wireguard_exporter
+    dst: /usr/bin/wireguard_exporter
+    file_info:
+      mode: 0755
+  - src: ./wireguard_exporter.service
+    dst: /usr/lib/systemd/system/wireguard_exporter.service
+    file_info:
+      mode: 0644
+  - src: ./packaging/wireguard_exporter.default
+    dst: /etc/default/wireguard_exporter
+    type: config|noreplace
+    file_info:
+      mode: 0644
+  # rpm does not create parent directories implicitly; own the doc directory
+  # so it is removed with the package.
+  - dst: /usr/share/doc/wireguard-exporter
+    type: dir
+    packager: rpm
+    file_info:
+      mode: 0755
+  - src: ./LICENSE
+    dst: /usr/share/doc/wireguard-exporter/LICENSE
+    file_info:
+      mode: 0644
+  - src: ./README.md
+    dst: /usr/share/doc/wireguard-exporter/README.md
+    file_info:
+      mode: 0644
+
+scripts:
+  postinstall: ./packaging/scripts/postinstall.sh
+  preremove: ./packaging/scripts/preremove.sh
+  postremove: ./packaging/scripts/postremove.sh

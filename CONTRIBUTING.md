@@ -67,7 +67,8 @@ schedule.
 | `src/collector.rs` | builds metrics from a `Source` on every scrape |
 | `src/netlink.rs` | real `Source`: kernel WireGuard via netlink, interface discovery |
 | `src/model.rs` | platform-independent data types and the `Source` trait |
-| `contrib/` | systemd unit (shipped in release archives), docker-compose example |
+| `contrib/` | systemd unit (shipped in release archives and packages), docker-compose example |
+| `packaging/` | nfpm config, `/etc/default` template and maintainer scripts for `.deb`/`.rpm` |
 | `contrib/kubernetes/` | kustomize manifests, ServiceMonitor, sidecar example |
 | `contrib/prometheus/` | peer names example, recording and alerting rules, `promtool` tests |
 | `contrib/grafana/` | Grafana dashboard |
@@ -75,11 +76,13 @@ schedule.
 | `charts/wireguard-exporter/` | Helm chart (published to `oci://ghcr.io/pessom/charts`) |
 | `Dockerfile` | runtime image from prebuilt binaries in `dist/<arch>/` |
 | `scripts/e2e.sh` | end-to-end test |
+| `scripts/package.sh` | builds the `.deb` and `.rpm` for one architecture (needs `nfpm`, see `scripts/install-nfpm.sh`) |
 
 ## Pull requests
 
 - Keep a PR focused on one change; add or update tests for it.
-- CI (`fmt`, `clippy`, unit tests, `cargo deny`, e2e for binary and image,
+- CI (`fmt`, `clippy`, unit tests, `cargo deny`, e2e for binary, image,
+  systemd unit and `.deb` package,
   Helm/kustomize validation, `promtool` rule tests) must be green.
 - Update `docs/` (and `README.md` if needed) when flags, metrics or behaviour
   change; keep `contrib/prometheus` rules, their tests and the Grafana

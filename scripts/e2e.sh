@@ -8,20 +8,25 @@
 #   - a container image with the documented minimal privileges (host
 #     network, only NET_ADMIN, no-new-privileges, read-only);
 #   - the systemd unit from contrib/ (installs /usr/local/bin/wireguard_exporter,
-#     /etc/default/wireguard_exporter and the unit; disposable machines only).
+#     /etc/default/wireguard_exporter and the unit; disposable machines only);
+#   - the .deb package (install, upgrade in place, purge; disposable machines
+#     only).
 #
 # Usage: scripts/e2e.sh <binary>
 #        scripts/e2e.sh --image <image>      (runtime: $E2E_RUNTIME, default docker)
 #        scripts/e2e.sh --systemd <binary>
+#        scripts/e2e.sh --deb <package.deb>
 set -euo pipefail
 
-USAGE="usage: $0 <binary> | --image <image> | --systemd <binary>"
+USAGE="usage: $0 <binary> | --image <image> | --systemd <binary> | --deb <package.deb>"
 BIN=""
 IMAGE=""
+PKG=""
 MODE=binary
 case "${1:-}" in
     --image) MODE=image; IMAGE="${2:?$USAGE}" ;;
     --systemd) MODE=systemd; BIN="$(realpath "${2:?$USAGE}")" ;;
+    --deb) MODE=deb; PKG="$(realpath "${2:?$USAGE}")" ;;
     *) BIN="$(realpath "${1:?$USAGE}")" ;;
 esac
 UNIT_SRC="$(dirname "$(realpath "$0")")/../contrib/wireguard_exporter.service"
@@ -36,6 +41,8 @@ sudo mkdir -p /etc/wireguard
 KEYDIR="$(sudo mktemp -d -p /etc/wireguard e2e.XXXXXX)"
 umask 077
 EXPORTER_PID=""
+# Both run the exporter as the systemd unit.
+uses_systemd() { [[ "$MODE" == systemd || "$MODE" == deb ]]; }
 
 cleanup() {
     [[ -n "$EXPORTER_PID" ]] && kill "$EXPORTER_PID" 2>/dev/null || true
@@ -46,6 +53,10 @@ cleanup() {
             /usr/local/bin/wireguard_exporter
         sudo rm -rf /etc/wireguard_exporter
         sudo systemctl daemon-reload || true
+    fi
+    if [[ "$MODE" == deb ]]; then
+        sudo apt-get purge -y wireguard-exporter >/dev/null 2>&1 || true
+        sudo rm -rf /etc/wireguard_exporter
     fi
     sudo ip link del wg-a 2>/dev/null || true
     sudo ip netns del "$NS" 2>/dev/null || true
@@ -62,7 +73,7 @@ fail() {
         echo "---- container logs ----" >&2
         "$RUNTIME" logs "$CONTAINER" >&2 2>&1 || true
     fi
-    if [[ "$MODE" == systemd ]]; then
+    if uses_systemd; then
         echo "---- systemd ----" >&2
         sudo systemctl status wireguard_exporter --no-pager >&2 2>&1 || true
         sudo journalctl -u wireguard_exporter --no-pager -n 50 >&2 2>&1 || true
@@ -79,7 +90,7 @@ wg genpsk | sudo tee "$KEYDIR/psk" >/dev/null
 # Peer names; world-readable: the container's root has no DAC_OVERRIDE and
 # the systemd dynamic user owns nothing. Written with sudo tee, which also
 # rewrites in place (a single-file bind mount does not follow a new inode).
-if [[ "$MODE" == systemd ]]; then
+if uses_systemd; then
     # 0755: the dynamic user must be able to traverse it (umask here is 077).
     sudo install -d -m 0755 /etc/wireguard_exporter
     NAMES=/etc/wireguard_exporter/peers.yml
@@ -118,6 +129,18 @@ if [[ "$MODE" == systemd ]]; then
     sudo systemctl daemon-reload
     sudo systemctl start wireguard_exporter
     systemd-analyze security wireguard_exporter.service --no-pager | tail -1 || true
+elif [[ "$MODE" == deb ]]; then
+    sudo apt-get install -y "$PKG" >/dev/null
+    [[ -x /usr/bin/wireguard_exporter ]] || fail "package: /usr/bin/wireguard_exporter missing"
+    [[ -f /usr/lib/systemd/system/wireguard_exporter.service ]] || fail "package: unit missing"
+    [[ -f /etc/default/wireguard_exporter ]] || fail "package: /etc/default/wireguard_exporter missing"
+    # Installing must not enable or start the service.
+    [[ "$(systemctl is-enabled wireguard_exporter 2>/dev/null || true)" == disabled ]] \
+        || fail "package: service enabled on install"
+    systemctl is-active --quiet wireguard_exporter && fail "package: service started on install"
+    echo "WG_EXPORTER_OPTS=\"--web.listen-address 127.0.0.1:$PORT --wireguard.peer-names-file $NAMES\"" \
+        | sudo tee /etc/default/wireguard_exporter >/dev/null
+    sudo systemctl enable --now wireguard_exporter
 elif [[ -n "$IMAGE" ]]; then
     # Minimal privileges documented in docs/installation.md ("Containers").
     "$RUNTIME" run -d --name "$CONTAINER" \
@@ -183,5 +206,24 @@ write_names '"%s": peer-b-renamed\n' "$B_PUB"
 curl -fsS "http://127.0.0.1:$PORT/metrics" -o "$M"
 grep -qF "wireguard_peer_name{interface=\"wg-a\",public_key=\"$B_PUB\",name=\"peer-b-renamed\"} 1" "$M" \
     || fail "peer names were not reloaded"
+
+if [[ "$MODE" == deb ]]; then
+    # Upgrade in place: the service keeps running and the edited conffile
+    # is kept.
+    sudo apt-get install -y --reinstall "$PKG" >/dev/null
+    systemctl is-active --quiet wireguard_exporter || fail "package: service stopped by upgrade"
+    grep -q "127.0.0.1:$PORT" /etc/default/wireguard_exporter || fail "package: conffile replaced by upgrade"
+    for _ in $(seq 1 50); do
+        curl -fsS "http://127.0.0.1:$PORT/metrics" -o "$M" 2>/dev/null && break
+        sleep 0.1
+    done
+    grep -qF 'wireguard_scrape_success{interface="wg-a"} 1' "$M" || fail "package: no metrics after upgrade"
+
+    # Removal stops the service and removes the files.
+    sudo apt-get purge -y wireguard-exporter >/dev/null
+    systemctl is-active --quiet wireguard_exporter && fail "package: service still running after purge"
+    [[ -e /usr/bin/wireguard_exporter || -e /usr/lib/systemd/system/wireguard_exporter.service \
+        || -e /etc/default/wireguard_exporter ]] && fail "package: files left after purge"
+fi
 
 echo "e2e OK ($MODE): handshake=$HS rx=$RX tx=$TX"
