@@ -10,3 +10,18 @@ home: https://github.com/pessom/wireguard-exporter
 sources:
   - https://github.com/pessom/wireguard-exporter
 keywords: [wireguard, prometheus, exporter, vpn]
+maintainers:
+  - name: pessom
+    url: https://github.com/pessom
+annotations:
+  artifacthub.io/category: monitoring-logging
+  artifacthub.io/license: MIT
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://github.com/pessom/wireguard-exporter/blob/main/docs/installation.md
+    - name: Metrics
+      url: https://github.com/pessom/wireguard-exporter/blob/main/docs/metrics.md
+    - name: Grafana dashboard
+      url: https://github.com/pessom/wireguard-exporter/blob/main/contrib/grafana/wireguard.json
+    - name: Alerting and recording rules
+      url: https://github.com/pessom/wireguard-exporter/tree/main/contrib/prometheus
