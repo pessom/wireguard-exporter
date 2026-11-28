@@ -74,6 +74,8 @@ docker run -d --name wireguard-exporter --restart unless-stopped \
 - **Docker Compose**: [`contrib/docker-compose.yml`](../contrib/docker-compose.yml).
 - To monitor a tunnel owned by **another container**, join its network
   namespace instead of the host's: `--network container:<wireguard-container>`.
+  Compose recipes for linuxserver/wireguard and wg-easy:
+  [WireGuard in Docker](docker-wireguard.md).
 - Arguments after the image name are exporter flags, see
   [configuration](configuration.md).
 - Peer names: mount the directory with the

@@ -62,6 +62,7 @@ Binary + systemd, Kubernetes (Helm, kustomize, sidecar): see
 | | |
 |---|---|
 | [Installation](docs/installation.md) | Binary + systemd, Docker/nerdctl/Podman, Kubernetes; required privileges, rootless limits |
+| [WireGuard in Docker](docs/docker-wireguard.md) | Exporter next to WireGuard in a container: linuxserver/wireguard (with peer names), wg-easy |
 | [Ansible](docs/ansible.md) | Example role without external dependencies (`ansible-pull`, offline mirrors) |
 | [Configuration](docs/configuration.md) | Flags, environment variables, interface discovery, security notes |
 | [Metrics](docs/metrics.md) | Metrics, labels, semantics, cardinality |

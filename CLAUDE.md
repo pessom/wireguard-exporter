@@ -16,6 +16,7 @@ Steps:
    - `contrib/kubernetes/kustomization.yaml`: `newTag`;
    - `contrib/docker-compose.yml`, `contrib/kubernetes/examples/sidecar.yaml`: image tag;
    - `README.md`, `docs/installation.md`: image tag, `VERSION=`, `--version`;
+   - `docs/docker-wireguard.md`: image tag;
    - `docs/ansible.md`: `wireguard_exporter_version`;
    - `.github/ISSUE_TEMPLATE/bug_report.yml`: `placeholder`.
    Leave historical version mentions alone (e.g. "archives older than 0.3.1").
