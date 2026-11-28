@@ -21,6 +21,22 @@ netlink (no `wg` binary needed) and ships as a single static binary and a
 - Ready-made Helm chart, kustomize manifests, recording and alerting rules
   and a [Grafana dashboard](https://grafana.com/grafana/dashboards/26131-wireguard/) (ID `26131`).
 
+## Compared to other WireGuard exporters
+
+| | wireguard-exporter | [MindFlavor/prometheus_wireguard_exporter](https://github.com/MindFlavor/prometheus_wireguard_exporter) | [mdlayher/wireguard_exporter](https://github.com/mdlayher/wireguard_exporter) |
+|---|---|---|---|
+| Status | Maintained | Last release 3.6.6 (2022) | Archived (2023) |
+| Reads state via | Netlink | `wg show … dump` | [wgctrl-go](https://github.com/WireGuard/wgctrl-go) |
+| `wg` binary needed | No | Yes | No |
+| Privileges | `CAP_NET_ADMIN` only | Root or a sudo rule for `wg` | — |
+| Userspace WireGuard (wireguard-go, boringtun) | No, kernel only | Yes, through `wg` | Yes |
+| Peer names | YAML file, reloaded on change, extra labels | Comments in the WireGuard config | Flag or TOML file |
+| Prebuilt binaries / images | `amd64`, `arm64` | Docker image for `amd64`, `386`, `arm64`, `armv7`, `armv6` | Build from source |
+| Helm chart, Grafana dashboard, alert rules | Included | — | — |
+
+If you need userspace WireGuard or 32-bit ARM, one of the other exporters
+may suit you better.
+
 ## Quick start
 
 ```sh
