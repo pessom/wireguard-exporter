@@ -3,6 +3,7 @@
 [![CI](https://github.com/pessom/wireguard-exporter/actions/workflows/ci.yml/badge.svg)](https://github.com/pessom/wireguard-exporter/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/pessom/wireguard-exporter)](https://github.com/pessom/wireguard-exporter/releases/latest)
 [![License: MIT](https://img.shields.io/github/license/pessom/wireguard-exporter)](LICENSE)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/wireguard-exporter)](https://artifacthub.io/packages/search?repo=wireguard-exporter)
 
 Prometheus exporter for Linux kernel WireGuard interfaces. Reads state via
 netlink (no `wg` binary needed) and ships as a single static binary and a

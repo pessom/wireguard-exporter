@@ -1,0 +1,4 @@
+# Artifact Hub repository metadata (Verified Publisher).
+# Pushed to oci://ghcr.io/pessom/charts/wireguard-exporter:artifacthub.io
+# by .github/workflows/artifacthub.yml.
+repositoryID: 92df4c48-492d-4092-b7f1-c0bffcacddb5
