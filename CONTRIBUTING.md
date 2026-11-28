@@ -83,7 +83,9 @@ schedule.
   Helm/kustomize validation, `promtool` rule tests) must be green.
 - Update `docs/` (and `README.md` if needed) when flags, metrics or behaviour
   change; keep `contrib/prometheus` rules, their tests and the Grafana
-  dashboard in sync with metric changes.
+  dashboard in sync with metric changes. After the dashboard changes on
+  `main`, upload it as a new revision of grafana.com dashboard
+  [`26131`](https://grafana.com/grafana/dashboards/26131-wireguard/).
 - Write commit messages in the imperative mood, with a short summary line
   (≤ 72 chars), e.g. `collector: add wireguard_device_peers metric`.
 

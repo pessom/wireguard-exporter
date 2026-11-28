@@ -8,7 +8,7 @@ Ready-to-use files:
 | [`contrib/prometheus/wireguard.rules.yml`](../contrib/prometheus/wireguard.rules.yml) | Recording rules: rates and handshake age with peer names |
 | [`contrib/prometheus/wireguard.alerts.yml`](../contrib/prometheus/wireguard.alerts.yml) | Alerting rules |
 | [`contrib/prometheus/tests/`](../contrib/prometheus/tests) | `promtool test rules` unit tests for the rules |
-| [`contrib/grafana/wireguard.json`](../contrib/grafana/wireguard.json) | Grafana dashboard |
+| [`contrib/grafana/wireguard.json`](../contrib/grafana/wireguard.json) | Grafana dashboard, also published on grafana.com as [`26131`](https://grafana.com/grafana/dashboards/26131-wireguard/) |
 
 ## Scrape configuration
 
@@ -236,8 +236,10 @@ promtool test rules contrib/prometheus/tests/wireguard.test.yml
 
 ## Grafana
 
-Import [`contrib/grafana/wireguard.json`](../contrib/grafana/wireguard.json)
-(*Dashboards → New → Import*) and pick the Prometheus data source. Variables:
+Import the dashboard in *Dashboards → New → Import*: enter ID [`26131`](https://grafana.com/grafana/dashboards/26131-wireguard/)
+(grafana.com) or upload
+[`contrib/grafana/wireguard.json`](../contrib/grafana/wireguard.json), then pick
+the Prometheus data source. Variables:
 `job`, `instance`, `interface`. Panels: overview stats, a peer table (name,
 key, endpoint, allowed IPs, last handshake, traffic), traffic and handshake
 age per peer, interface read status. The peer table also shows keepalive and

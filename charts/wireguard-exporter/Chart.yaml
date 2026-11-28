@@ -22,6 +22,6 @@ annotations:
     - name: Metrics
       url: https://github.com/pessom/wireguard-exporter/blob/main/docs/metrics.md
     - name: Grafana dashboard
-      url: https://github.com/pessom/wireguard-exporter/blob/main/contrib/grafana/wireguard.json
+      url: https://grafana.com/grafana/dashboards/26131-wireguard
     - name: Alerting and recording rules
       url: https://github.com/pessom/wireguard-exporter/tree/main/contrib/prometheus

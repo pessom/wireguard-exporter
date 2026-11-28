@@ -19,7 +19,7 @@ netlink (no `wg` binary needed) and ships as a single static binary and a
   manifests run it with that single capability.
 - Interfaces are discovered automatically on every scrape.
 - Ready-made Helm chart, kustomize manifests, recording and alerting rules
-  and a Grafana dashboard.
+  and a [Grafana dashboard](https://grafana.com/grafana/dashboards/26131-wireguard/) (ID `26131`).
 
 ## Quick start
 
