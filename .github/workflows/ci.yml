@@ -49,13 +49,13 @@ jobs:
 
   e2e:
     # Real kernel WireGuard: tunnel + handshake, exporter as a binary with
-    # CAP_NET_ADMIN, as a container image with minimal privileges and as the
-    # hardened systemd unit from contrib/.
+    # CAP_NET_ADMIN, as a container image with minimal privileges, as the
+    # hardened systemd unit from contrib/ and as the .deb package.
     needs: [check, build]
     strategy:
       fail-fast: false
       matrix:
-        mode: [binary, image, systemd]
+        mode: [binary, image, systemd, deb]
     name: e2e (${{ matrix.mode }})
     runs-on: ubuntu-26.04
     steps:
@@ -77,6 +77,27 @@ jobs:
         run: scripts/e2e.sh dist/amd64/wireguard_exporter
       - if: matrix.mode == 'systemd'
         run: scripts/e2e.sh --systemd dist/amd64/wireguard_exporter
+      - if: matrix.mode == 'deb'
+        name: Build .deb and .rpm packages
+        run: |
+          scripts/install-nfpm.sh
+          version="$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)"
+          for a in amd64 arm64; do
+            scripts/package.sh "$version" "$a" "dist/$a/wireguard_exporter" pkg
+          done
+      - if: matrix.mode == 'deb'
+        name: Inspect .rpm packages
+        run: |
+          sudo apt-get install -y rpm
+          for p in pkg/*.rpm; do
+            echo "== $p"
+            rpm -qpi "$p"
+            rpm -qpl "$p"
+            rpm -qp --scripts "$p"
+            rpm -qpc "$p" | grep -qx /etc/default/wireguard_exporter
+          done
+      - if: matrix.mode == 'deb'
+        run: scripts/e2e.sh --deb pkg/wireguard-exporter_*_amd64.deb
       - if: matrix.mode == 'image'
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - if: matrix.mode == 'image'

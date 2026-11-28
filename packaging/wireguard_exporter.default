@@ -1,0 +1,5 @@
+# Flags for wireguard_exporter (systemd unit wireguard_exporter.service).
+# See https://github.com/pessom/wireguard-exporter/blob/main/docs/configuration.md
+# After editing: systemctl restart wireguard_exporter
+#
+#WG_EXPORTER_OPTS="--web.listen-address 127.0.0.1:9586 --wireguard.peer-names-file /etc/wireguard_exporter/peers.yml"
